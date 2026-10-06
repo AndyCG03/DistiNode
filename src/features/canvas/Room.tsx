@@ -2,6 +2,9 @@
 
 import { LiveMap, LiveObject } from "@liveblocks/client";
 import { ClientSideSuspense, LiveblocksProvider, RoomProvider } from "@liveblocks/react/suspense";
+import { useErrorListener } from "@liveblocks/react/suspense";
+import Link from "next/link";
+import { useState } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { roomIdFor } from "@/lib/liveblocks.config";
 import { RoomView, type RoomInfo } from "./RoomView";
@@ -31,19 +34,42 @@ export function Room({ room, authEndpoint = "/api/liveblocks-auth" }: { room: Ro
             </Centered>
           }
         >
-          <ClientSideSuspense
-            fallback={
-              <Centered>
-                <span className="inline-block size-3 animate-pulse rounded-full bg-verde" aria-hidden="true" />
-                <p className="mt-3 text-gris-texto">Conectando con la sala…</p>
-              </Centered>
-            }
-          >
-            <RoomView room={room} />
-          </ClientSideSuspense>
+          <AccessGuard>
+            <ClientSideSuspense
+              fallback={
+                <Centered>
+                  <span className="inline-block size-3 animate-pulse rounded-full bg-verde" aria-hidden="true" />
+                  <p className="mt-3 text-gris-texto">Conectando con la sala…</p>
+                </Centered>
+              }
+            >
+              <RoomView room={room} />
+            </ClientSideSuspense>
+          </AccessGuard>
         </ErrorBoundary>
       </RoomProvider>
     </LiveblocksProvider>
+  );
+}
+
+/** Si Liveblocks rechaza el acceso (no eres miembro, sesión caducada), lo decimos en vez de esperar. */
+function AccessGuard({ children }: { children: React.ReactNode }) {
+  const [problem, setProblem] = useState<"denied" | "full" | null>(null);
+  useErrorListener((error) => {
+    if (error.context.type !== "ROOM_CONNECTION_ERROR") return;
+    setProblem(error.context.code === 4005 ? "full" : "denied");
+  });
+  if (!problem) return children;
+  return (
+    <Centered>
+      <p className="font-semibold">{problem === "full" ? "La sala está llena." : "No tienes acceso a esta sala."}</p>
+      <p className="mt-1 text-gris-texto">
+        {problem === "full" ? "Prueba de nuevo en un rato." : "Puede que tu sesión haya caducado. Vuelve a entrar."}
+      </p>
+      <Link href="/salas" className="btn btn-primario mt-5">
+        Ir a mis salas
+      </Link>
+    </Centered>
   );
 }
 

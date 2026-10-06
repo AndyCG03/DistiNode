@@ -39,8 +39,8 @@ export function RoomHeader({ room, readOnly }: { room: RoomInfo; readOnly: boole
         <span className="text-xs tracking-normal">{copied ? "¡copiado!" : "copiar enlace"}</span>
       </button>
       {readOnly && (
-        <span className="rounded-full border border-linea px-2 py-0.5 text-xs text-gris-texto">
-          Solo lectura en móvil
+        <span className="shrink-0 rounded-full border border-linea px-2 py-0.5 text-xs whitespace-nowrap text-gris-texto">
+          Solo lectura
         </span>
       )}
       <div className="ml-auto flex items-center gap-2">

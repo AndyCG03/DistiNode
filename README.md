@@ -1,9 +1,24 @@
 # DistiNode
 
+<img src="public/brand/distinode-original.jpg" alt="Logo de DistiNode" width="120">
+
 App web educativa para diseñar sistemas distribuidos **en equipo** y verlos funcionar **en vivo**.
 Cada petición es un tren que recorre un mapa de metro: Cliente → Balanceador → Servidores → Caché → Base de datos.
 
 Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`docs/plan.md`](docs/plan.md).
+
+## Qué hace la v1
+
+- Entrar con enlace mágico al correo o con Google.
+- Salas: crear, unirse con un código de 6 caracteres (o con el enlace de invitación) y "Mis salas".
+- Lienzo compartido en tiempo real: arrastrar Cliente, Balanceador, Servidor, Caché y Base de datos; conectar,
+  mover, borrar (Supr) y editar propiedades; cursores y avatares de quien está; borde con el color de quien
+  selecciona; avisos breves ("Ana tumbó Servidor 2"). Se guarda solo.
+- Simulación: ▶/⏸ (Espacio), tráfico 1–200 pet/s, trenes de petición (blancos), respuesta (grises) y error
+  (rojos); colas, saturación verde → ámbar → rojo, round-robin con chequeo de salud, caché con % de aciertos,
+  tumbar y revivir nodos, y métricas en vivo. El estado (▶, tráfico, nodos caídos) es compartido; cada
+  navegador ejecuta el motor localmente.
+- En móvil, solo lectura.
 
 ## Stack
 
@@ -19,7 +34,26 @@ cp .env.example .env.local   # y rellena las claves (ver abajo)
 npm run dev                  # http://localhost:3000
 ```
 
-Comprobaciones:
+### Sin cuentas: Liveblocks en local
+
+Para desarrollar el lienzo sin crear un proyecto en Liveblocks puedes usar su servidor local:
+
+```bash
+npx liveblocks dev            # http://localhost:1153
+```
+
+y en `.env.local`:
+
+```bash
+LIVEBLOCKS_SECRET_KEY=sk_localdev
+LIVEBLOCKS_BASE_URL=http://localhost:1153
+NEXT_PUBLIC_LIVEBLOCKS_BASE_URL=http://localhost:1153
+```
+
+Las dos variables `*_BASE_URL` son opcionales: si no están, se usa el servicio real de Liveblocks.
+Supabase sigue haciendo falta para entrar y crear salas.
+
+### Comprobaciones
 
 ```bash
 npm run lint        # ESLint
@@ -70,6 +104,29 @@ npm test            # pruebas del motor de simulación (Vitest)
    - Supabase → Authentication → URL Configuration: pon ese dominio como *Site URL* y añade
      `https://TU-DOMINIO/auth/callback` a *Redirect URLs*.
    - Google Cloud: no hay que tocar nada (la redirección va a Supabase).
+
+## Cómo comprobar la v1
+
+1. Abre la app en dos navegadores (o uno normal y otro privado) con dos usuarios distintos.
+2. Usuario A: crea una sala y copia el enlace (botón junto al código). Usuario B: ábrelo y pulsa "Unirme".
+3. Mueve el ratón y un nodo en A: B ve el cursor con nombre y el cambio al momento.
+4. En la sala vacía, "Cargar ejemplo" y ▶ (o Espacio): los trenes empiezan a circular.
+5. Sube el tráfico a ~70 pet/s: Servidor 1 se pone rojo, sube la latencia y aparecen errores.
+6. Arrastra otro Servidor, conecta Balanceador → Servidor 2 → Base de datos: los dos vuelven a verde.
+7. Selecciona un servidor y pulsa "Tumbar": aparecen errores (trenes rojos) y, tras el chequeo de salud
+   (1 s por defecto), el balanceador deja de enviarle tráfico.
+8. Recarga: el diagrama sigue ahí.
+
+## Arquitectura (y lo que viene)
+
+- `src/sim/` es el motor: TypeScript puro, paso fijo, semilla y pruebas. No sabe nada de React.
+- `src/sim/components.ts` es el registro de componentes: añadir uno (p. ej. "Cola de mensajes") es una entrada
+  ahí + su comportamiento en `engine.ts`; la barra lateral y el panel de propiedades se generan solos.
+- Lecciones y misiones: un escenario = grafo inicial + objetivos evaluados sobre `engine.metrics()`; al ser
+  determinista se puede comprobar sin interfaz.
+- Modo caos, chat y galería encajan como eventos de sala (`RoomEvent`) y nuevas claves del almacenamiento
+  de Liveblocks; la galería, como una tabla más en Supabase con RLS.
+- Edición en móvil: hoy el lienzo es de solo lectura por debajo de 768 px (`useIsMobile`).
 
 ## Seguridad
 

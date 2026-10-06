@@ -24,7 +24,7 @@ const stations = [
 export function MetroHero() {
   return (
     <svg
-      viewBox="0 0 560 290"
+      viewBox="-10 0 600 290"
       className="h-auto w-full"
       role="img"
       aria-label="Un cliente envía peticiones a través de un balanceador hacia dos servidores y una base de datos"

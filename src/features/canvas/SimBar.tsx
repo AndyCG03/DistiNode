@@ -47,6 +47,41 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
   }
 
   const errorPct = m.errorRate * 100;
+  const metrics = (
+    <dl className="cifras flex items-center gap-4 text-sm" aria-live="off">
+      <Metric
+        label="completadas"
+        value={`${fmt.format(m.throughput)}/s`}
+        title="Respuestas correctas que llegan a los clientes por segundo"
+      />
+      <Metric
+        label="latencia"
+        value={`${fmt.format(m.avgLatencyMs)} ms`}
+        title="Media de espera y proceso en los componentes; el viaje por las líneas no cuenta"
+      />
+      <Metric
+        label="errores"
+        value={`${fmt.format(errorPct)} %`}
+        title="Porcentaje de peticiones que fallaron en los últimos 2 s"
+        tone={errorPct >= 5 ? "text-rojo" : errorPct > 0 ? "text-ambar" : undefined}
+      />
+    </dl>
+  );
+
+  // En móvil solo se mira: estado y métricas, sin controles.
+  if (readOnly) {
+    return (
+      <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
+        <div className="flex items-center gap-4 rounded-2xl border border-linea bg-papel px-4 py-2 shadow-flota">
+          <span className="flex items-center gap-1.5 text-sm font-semibold">
+            <span aria-hidden="true" className={`size-2.5 rounded-full ${running ? "bg-verde" : "bg-gris"}`} />
+            {running ? "En marcha" : "En pausa"}
+          </span>
+          {metrics}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
@@ -95,24 +130,7 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
           <span className="cifras w-[4.5rem] text-sm whitespace-nowrap text-gris-texto">{traffic} pet/s</span>
         </label>
 
-        <dl className="cifras flex items-center gap-4 border-l border-linea pl-5 text-sm" aria-live="off">
-          <Metric
-            label="completadas"
-            value={`${fmt.format(m.throughput)}/s`}
-            title="Respuestas correctas que llegan a los clientes por segundo"
-          />
-          <Metric
-            label="latencia"
-            value={`${fmt.format(m.avgLatencyMs)} ms`}
-            title="Media de espera y proceso en los componentes; el viaje por las líneas no cuenta"
-          />
-          <Metric
-            label="errores"
-            value={`${fmt.format(errorPct)} %`}
-            title="Porcentaje de peticiones que fallaron en los últimos 2 s"
-            tone={errorPct >= 5 ? "text-rojo" : errorPct > 0 ? "text-ambar" : undefined}
-          />
-        </dl>
+        <div className="border-l border-linea pl-5">{metrics}</div>
       </div>
     </div>
   );
