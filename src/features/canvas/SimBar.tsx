@@ -9,7 +9,7 @@ import { OVERLOAD_SECONDS } from "./Supervisor";
 const fmt = new Intl.NumberFormat("es", { maximumFractionDigits: 0 });
 
 /** Barra flotante: ▶/⏸, tráfico y métricas en vivo. */
-export function SimBar({ readOnly }: { readOnly: boolean }) {
+export function SimBar({ readOnly, compact = false }: { readOnly: boolean; compact?: boolean }) {
   const sim = useDiagramState().sim;
   const { running, traffic } = sim;
   const opts = { ...SIM_DEFAULTS, ...sim };
@@ -109,6 +109,104 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
     );
   }
 
+  const playButton = (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={readOnly}
+      aria-pressed={running}
+      aria-keyshortcuts="Space"
+      title={running ? "Pausar (Espacio)" : "Poner en marcha (Espacio)"}
+      className="grid size-11 shrink-0 place-items-center rounded-full bg-verde text-sobre-verde hover:bg-verde-fuerte disabled:opacity-60"
+    >
+      {running ? (
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+          <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5Z" fill="currentColor" />
+        </svg>
+      )}
+      <span className="sr-only">{running ? "Pausar" : "Poner en marcha"}</span>
+    </button>
+  );
+  const trafficSlider = (
+    <input
+      type="range"
+      className={compact ? "rango w-full" : "rango w-36 md:w-44"}
+      min={1}
+      max={200}
+      step={1}
+      value={traffic}
+      disabled={readOnly}
+      onChange={(e) => setTraffic(Number(e.target.value))}
+      onPointerUp={commitTraffic}
+      onKeyUp={commitTraffic}
+      aria-valuetext={`${traffic} peticiones por segundo`}
+    />
+  );
+  const faultToggles = (
+    <>
+      <Toggle
+        on={opts.chaos}
+        onChange={(v) => {
+          setSimOptions({ chaos: v });
+          notify(v ? "activó el modo caos" : "desactivó el modo caos");
+        }}
+        label="Caos"
+        title="Caídas, lentitud y cortes de red al azar; lo caído vuelve solo tras unos segundos"
+      />
+      <Toggle
+        on={opts.autoCrash}
+        onChange={(v) => {
+          setSimOptions({ autoCrash: v });
+          notify(v ? "activó las caídas por sobrecarga" : "desactivó las caídas por sobrecarga");
+        }}
+        label={compact ? "Sobrecarga" : "Sobrecarga tumba"}
+        title={`Un componente saturado más de ${OVERLOAD_SECONDS} s se cae y tarda ${opts.restartSec} s en reiniciar`}
+      />
+    </>
+  );
+
+  // Móvil: dos filas a todo el ancho, botones grandes, sin minigráficas.
+  if (compact) {
+    return (
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-20 pb-[env(safe-area-inset-bottom)]">
+        <div
+          className="pointer-events-auto flex flex-col gap-2 rounded-2xl border border-linea bg-papel p-2 shadow-flota"
+          role="group"
+          aria-label="Simulación"
+        >
+          <div className="flex items-center gap-3">
+            {playButton}
+            <label className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="sr-only">Tráfico</span>
+              {trafficSlider}
+            </label>
+            <span className="cifras shrink-0 text-sm whitespace-nowrap text-gris-texto">{traffic} pet/s</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 px-1">
+            <dl className="cifras flex gap-3 text-sm">
+              <Metric label="ok/s" value={fmt.format(m.throughput)} title="Respuestas correctas por segundo" />
+              <Metric label="p95" value={`${fmt.format(m.p95LatencyMs)} ms`} title="Latencia p95" />
+              <Metric
+                label="errores"
+                value={`${fmt.format(errorPct)} %`}
+                title="Errores"
+                tone={errorPct >= 5 ? "text-rojo" : errorPct > 0 ? "text-ambar" : undefined}
+              />
+            </dl>
+            <div className="flex gap-1" role="group" aria-label="Fallos">
+              {faultToggles}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
       <div
@@ -116,67 +214,18 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
         role="group"
         aria-label="Simulación"
       >
-        <button
-          type="button"
-          onClick={toggle}
-          disabled={readOnly}
-          aria-pressed={running}
-          aria-keyshortcuts="Space"
-          title={running ? "Pausar (Espacio)" : "Poner en marcha (Espacio)"}
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-verde text-sobre-verde hover:bg-verde-fuerte disabled:opacity-60"
-        >
-          {running ? (
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-              <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5Z" fill="currentColor" />
-            </svg>
-          )}
-          <span className="sr-only">{running ? "Pausar" : "Poner en marcha"}</span>
-        </button>
+        {playButton}
 
         <label className="flex items-center gap-3">
           <span className="text-sm font-semibold">Tráfico</span>
-          <input
-            type="range"
-            className="rango w-36 md:w-44"
-            min={1}
-            max={200}
-            step={1}
-            value={traffic}
-            disabled={readOnly}
-            onChange={(e) => setTraffic(Number(e.target.value))}
-            onPointerUp={commitTraffic}
-            onKeyUp={commitTraffic}
-            aria-valuetext={`${traffic} peticiones por segundo`}
-          />
+          {trafficSlider}
           <span className="cifras w-[4.5rem] text-sm whitespace-nowrap text-gris-texto">{traffic} pet/s</span>
         </label>
 
         <div className="border-l border-linea pl-5">{metrics}</div>
 
         <div className="flex items-center gap-1.5 border-l border-linea pl-4" role="group" aria-label="Fallos">
-          <Toggle
-            on={opts.chaos}
-            onChange={(v) => {
-              setSimOptions({ chaos: v });
-              notify(v ? "activó el modo caos" : "desactivó el modo caos");
-            }}
-            label="Caos"
-            title="Caídas, lentitud y cortes de red al azar; lo caído vuelve solo tras unos segundos"
-          />
-          <Toggle
-            on={opts.autoCrash}
-            onChange={(v) => {
-              setSimOptions({ autoCrash: v });
-              notify(v ? "activó las caídas por sobrecarga" : "desactivó las caídas por sobrecarga");
-            }}
-            label="Sobrecarga tumba"
-            title={`Un componente saturado más de ${OVERLOAD_SECONDS} s se cae y tarda ${opts.restartSec} s en reiniciar`}
-          />
+          {faultToggles}
         </div>
       </div>
     </div>

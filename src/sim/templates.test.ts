@@ -13,7 +13,13 @@ function graphOf(id: string): SimGraph {
       params: { ...COMPONENTS[n.kind].defaults, ...n.params },
       down: false,
     })),
-    edges: t.edges.map(([a, b]) => ({ id: `${a}>${b}`, source: a, target: b, travelTime: 0.3 })),
+    edges: t.edges.map(([a, b, opts]) => ({
+      id: `${a}>${b}`,
+      source: a,
+      target: b,
+      travelTime: 0.3,
+      latencyMs: opts?.latencyMs,
+    })),
   };
 }
 
@@ -51,5 +57,49 @@ describe("plantillas", () => {
     const m = e.metrics();
     expect(m.retryRate).toBeGreaterThan(15);
     expect(m.errorRate).toBeGreaterThan(0.2);
+  });
+
+  it("streaming: sin la CDN el origen se hunde", () => {
+    const g = graphOf("streaming-video");
+    g.nodes.find((n) => n.id === "cdn")!.params.hitRate = 50;
+    const e = new Engine({ seed: 4 });
+    e.setGraph(g);
+    e.setTraffic(200);
+    for (let i = 0; i < 1000; i++) e.step();
+    expect(e.nodeStats("p1")!.status).toBe("hot");
+    expect(e.metrics().errorRate).toBeGreaterThan(0.1);
+  });
+
+  it("mensajería: con la base de datos caída no se pierde ningún mensaje", () => {
+    const g = graphOf("mensajeria");
+    const e = new Engine({ seed: 4 });
+    e.setGraph(g);
+    e.setTraffic(150);
+    for (let i = 0; i < 300; i++) e.step();
+    g.nodes.find((n) => n.id === "db")!.down = true;
+    e.setGraph(g);
+    for (let i = 0; i < 1000; i++) e.step();
+    expect(e.metrics().errorRate).toBe(0); // los usuarios no lo notan
+    const stuck = e.metrics().backlog;
+    expect(stuck).toBeGreaterThan(500);
+    g.nodes.find((n) => n.id === "db")!.down = false;
+    e.setGraph(g);
+    for (let i = 0; i < 2500; i++) e.step();
+    expect(e.metrics().backlog).toBeLessThan(stuck / 4); // se pone al día
+  });
+
+  it("dos regiones: si se corta Europa, todo va a América con más latencia", () => {
+    const g = graphOf("multi-region");
+    const e = new Engine({ seed: 4 });
+    e.setGraph(g);
+    e.setTraffic(80);
+    for (let i = 0; i < 600; i++) e.step();
+    const before = e.metrics().avgLatencyMs;
+    g.edges = g.edges.map((ed) => (ed.id === "glb>eu" ? { ...ed, down: true } : ed));
+    e.setGraph(g);
+    for (let i = 0; i < 600; i++) e.step();
+    expect(e.nodeStats("eu")!.arrivalRate).toBe(0);
+    expect(e.metrics().errorRate).toBe(0);
+    expect(e.metrics().avgLatencyMs).toBeGreaterThan(before + 60);
   });
 });

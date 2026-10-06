@@ -5,10 +5,20 @@ import { useActions, useDiagramState } from "@/features/collab/context";
 import { COMPONENTS, paramValue, type ParamSpec } from "@/sim/components";
 import { useSecondsLeft } from "./Countdown";
 import { HexIcon } from "./icons";
+import { BottomSheet } from "./MobileSheets";
 import { NodeLiveStats } from "./NodeLiveStats";
 import type { Selection } from "./RoomView";
 
-export function PropertiesPanel({ selection, onClear }: { selection: Selection; onClear: () => void }) {
+export function PropertiesPanel({
+  selection,
+  onClear,
+  variant = "side",
+}: {
+  selection: Selection;
+  onClear: () => void;
+  /** "side": columna a la derecha · "sheet": hoja inferior en el móvil. */
+  variant?: "side" | "sheet";
+}) {
   const nodeId = selection.nodes.length === 1 && selection.edges.length === 0 ? selection.nodes[0] : null;
   const edgeId = selection.edges.length === 1 && selection.nodes.length === 0 ? selection.edges[0] : null;
   const { nodes, edges } = useDiagramState();
@@ -21,11 +31,15 @@ export function PropertiesPanel({ selection, onClear }: { selection: Selection; 
 
   if (!node && !edge) return null;
 
-  return (
-    <aside
-      className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-linea bg-papel"
-      aria-label="Propiedades"
-    >
+  // Destinos a los que aún no está conectado (para conectar sin arrastrar, cómodo en pantallas táctiles).
+  const connectable = node
+    ? Object.values(nodes)
+        .filter((n) => n.id !== node.id && !Object.values(edges).some((e) => e.source === node.id && e.target === n.id))
+        .sort((a, b) => a.label.localeCompare(b.label, "es"))
+    : [];
+
+  const content = (
+    <>
       {node && (
         <div className="flex flex-col gap-5 p-4">
           <div className="flex items-center gap-3">
@@ -62,6 +76,32 @@ export function PropertiesPanel({ selection, onClear }: { selection: Selection; 
               onChange={(v) => diagram.setParam(node.id, spec.key, v)}
             />
           ))}
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="connect-to" className="text-sm font-semibold">
+              Conectar con…
+            </label>
+            <select
+              id="connect-to"
+              className="campo h-10"
+              value=""
+              disabled={!connectable.length}
+              onChange={(e) => {
+                const target = nodes[e.target.value];
+                if (target && diagram.connect(node.id, target.id)) notify(`conectó ${node.label} → ${target.label}`);
+              }}
+            >
+              <option value="">{connectable.length ? "Elige un destino" : "Ya está conectado a todo"}</option>
+              {connectable.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gris-texto">
+              Las peticiones irán de {node.label} al destino. También puedes arrastrar desde su salida (●).
+            </p>
+          </div>
 
           <NodeLiveStats id={node.id} kind={node.kind} />
 
@@ -167,6 +207,23 @@ export function PropertiesPanel({ selection, onClear }: { selection: Selection; 
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (variant === "sheet") {
+    return (
+      <BottomSheet label={node ? node.label : "Conexión"} onClose={onClear}>
+        {content}
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <aside
+      className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-linea bg-papel"
+      aria-label="Propiedades"
+    >
+      {content}
     </aside>
   );
 }

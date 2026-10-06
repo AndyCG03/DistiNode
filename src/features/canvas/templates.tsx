@@ -3,7 +3,8 @@
 import { useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useRef } from "react";
 import { useActions } from "@/features/collab/context";
-import { TEMPLATES, type Template } from "@/sim/templates";
+import { fitOptions } from "./fit";
+import { TEMPLATE_CATEGORIES, TEMPLATES, type Template } from "@/sim/templates";
 
 /** Carga una plantilla, avisa a los demás y encuadra el lienzo. */
 export function useLoadTemplate() {
@@ -13,7 +14,7 @@ export function useLoadTemplate() {
     (t: Template) => {
       actions.loadTemplate(t);
       actions.notify(`cargó la plantilla «${t.name}»`);
-      setTimeout(() => flow.fitView({ padding: 0.25, duration: 400 }), 150);
+      setTimeout(() => flow.fitView({ ...fitOptions(), duration: 400 }), 150);
     },
     [actions, flow],
   );
@@ -116,7 +117,7 @@ export function TemplateDialog({
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="m-auto w-[min(640px,calc(100vw-32px))] rounded-2xl border border-linea bg-papel p-0 text-tinta shadow-flota backdrop:bg-black/40"
+      className="m-auto w-[min(720px,calc(100vw-24px))] rounded-2xl border border-linea bg-papel p-0 text-tinta shadow-flota backdrop:bg-black/40"
       aria-labelledby="plantillas-titulo"
     >
       <div className="flex items-start justify-between gap-4 border-b border-linea px-5 py-4">
@@ -139,19 +140,30 @@ export function TemplateDialog({
           ✕
         </button>
       </div>
-      <ul className="grid max-h-[70vh] gap-2 overflow-y-auto p-4 sm:grid-cols-2">
-        {TEMPLATES.map((t) => (
-          <li key={t.id}>
-            <TemplateButton
-              template={t}
-              onPick={(picked) => {
-                load(picked);
-                onClose();
-              }}
-            />
-          </li>
+      <div className="max-h-[70vh] overflow-y-auto p-4">
+        {TEMPLATE_CATEGORIES.map((cat) => (
+          <section key={cat} aria-label={cat} className="mb-4 last:mb-0">
+            <h3 className="mb-2 text-sm font-semibold text-gris-texto">
+              {cat === "Patrones"
+                ? "Patrones: una idea cada una"
+                : "Sistemas reales: cómo están hechas apps que conoces"}
+            </h3>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {TEMPLATES.filter((t) => t.category === cat).map((t) => (
+                <li key={t.id}>
+                  <TemplateButton
+                    template={t}
+                    onPick={(picked) => {
+                      load(picked);
+                      onClose();
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
+      </div>
     </dialog>
   );
 }

@@ -17,7 +17,10 @@ export function Notices() {
   });
 
   return (
-    <div aria-live="polite" className="pointer-events-none absolute bottom-24 left-4 z-20 flex flex-col gap-2">
+    <div
+      aria-live="polite"
+      className="pointer-events-none absolute top-3 left-3 z-20 flex flex-col gap-2 sm:top-auto sm:bottom-24 sm:left-4"
+    >
       {items.map((n) => (
         <p
           key={n.id}

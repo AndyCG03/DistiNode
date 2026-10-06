@@ -348,3 +348,19 @@ body {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+@keyframes hoja {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+/* Pantallas táctiles: asas grandes para poder conectar con el dedo. */
+@media (pointer: coarse) {
+  .station-handle.react-flow__handle {
+    width: 22px;
+    height: 22px;
+    border-width: 4px;
+  }
+}

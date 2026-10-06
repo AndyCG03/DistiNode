@@ -17,7 +17,7 @@ import { COMPONENTS, nextLabel, type ComponentKind, type ParamKey } from "@/sim/
 import type { Template } from "@/sim/templates";
 import { CollabProvider, createNoticeBus } from "./context";
 import { buildTemplate, clampTraffic, newId } from "./ops";
-import type { DiagramActions, DiagramState, EdgePatch, NodeStatePatch, SimPatch } from "./types";
+import type { DiagramActions, DiagramState, EdgeData, EdgePatch, NodeData, NodeStatePatch, SimPatch } from "./types";
 
 /** Conecta la sala de Liveblocks con la interfaz. Debe ir dentro de RoomProvider + ClientSideSuspense. */
 export function LiveblocksBridge({ children }: { children: React.ReactNode }) {
@@ -145,16 +145,26 @@ function useLiveActions(myName: string, onAnnounce: (text: string) => void): Dia
   }, []);
 
   /** Sustituye todo el diagrama en una sola operación (los demás lo ven de golpe). */
-  const loadTemplate = useMutation(({ storage }, t: Template) => {
-    const nodes = storage.get("nodes");
-    const edges = storage.get("edges");
-    for (const id of [...edges.keys()]) edges.delete(id);
-    for (const id of [...nodes.keys()]) nodes.delete(id);
-    const built = buildTemplate(t);
-    for (const n of built.nodes) nodes.set(n.id, new LiveObject({ ...n, params: new LiveObject(n.params) }));
-    for (const e of built.edges) edges.set(e.id, new LiveObject(e));
-    storage.get("sim").set("traffic", t.traffic);
-  }, []);
+  const replaceDiagram = useMutation(
+    ({ storage }, nodeList: NodeData[], edgeList: EdgeData[], sim?: SimPatch & { traffic?: number }) => {
+      const nodes = storage.get("nodes");
+      const edges = storage.get("edges");
+      for (const id of [...edges.keys()]) edges.delete(id);
+      for (const id of [...nodes.keys()]) nodes.delete(id);
+      for (const n of nodeList) nodes.set(n.id, new LiveObject({ ...n, params: new LiveObject(n.params) }));
+      for (const e of edgeList) edges.set(e.id, new LiveObject(e));
+      if (sim) storage.get("sim").update(sim);
+    },
+    [],
+  );
+
+  const loadTemplate = useCallback(
+    (t: Template) => {
+      const built = buildTemplate(t);
+      replaceDiagram(built.nodes, built.edges, { traffic: t.traffic });
+    },
+    [replaceDiagram],
+  );
 
   return useMemo(
     () => ({
@@ -170,6 +180,7 @@ function useLiveActions(myName: string, onAnnounce: (text: string) => void): Dia
       setTraffic,
       setSimOptions,
       loadTemplate,
+      replaceDiagram,
       notify: (action: string) => broadcast({ type: "notice", text: `${myName} ${action}` }),
       announce: (text: string) => {
         broadcast({ type: "notice", text });
@@ -189,6 +200,7 @@ function useLiveActions(myName: string, onAnnounce: (text: string) => void): Dia
       setTraffic,
       setSimOptions,
       loadTemplate,
+      replaceDiagram,
       broadcast,
       myName,
       onAnnounce,

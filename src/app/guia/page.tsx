@@ -5,7 +5,7 @@ import { HexIcon } from "@/features/canvas/icons";
 import { TemplatePreview } from "@/features/canvas/templates";
 import { COMPONENTS, COMPONENT_ORDER, GROUPS } from "@/sim/components";
 import { THRESHOLDS } from "@/sim/engine";
-import { TEMPLATES } from "@/sim/templates";
+import { TEMPLATE_CATEGORIES, TEMPLATES } from "@/sim/templates";
 
 export const metadata: Metadata = {
   title: "Guía",
@@ -20,6 +20,7 @@ const TOC = [
   { id: "plantillas", label: "Plantillas" },
   { id: "retos", label: "Retos" },
   { id: "equipo", label: "Trabajo en equipo y atajos" },
+  { id: "proyectos", label: "Proyectos e imágenes" },
   { id: "glosario", label: "Glosario" },
 ];
 
@@ -273,26 +274,35 @@ export default function GuiaPage() {
 
           <Section id="plantillas" title="Plantillas">
             <p>
-              Desde un lienzo vacío o con el botón <strong>Plantillas…</strong> de la barra lateral. Cargar una
-              plantilla sustituye el diagrama para todos los de la sala.
+              Hay {TEMPLATES.length}: patrones que enseñan una idea cada uno y sistemas reales simplificados. Se cargan
+              desde un lienzo vacío, con el botón <strong>Plantillas…</strong> de la barra lateral o con el
+              <strong> +</strong> en el móvil. Cargar una plantilla sustituye el diagrama para todos los de la sala.
             </p>
-            <ul className="mt-4 flex flex-col gap-4">
-              {TEMPLATES.map((t) => (
-                <li key={t.id} className="flex flex-col gap-3 rounded-xl border border-linea bg-papel p-4 sm:flex-row">
-                  <span className="self-start rounded-lg bg-fondo p-1.5">
-                    <TemplatePreview template={t} width={160} height={72} />
-                  </span>
-                  <div>
-                    <h3 className="font-bold">{t.name}</h3>
-                    <p className="text-gris-texto">{t.summary}</p>
-                    <p className="mt-2 text-[0.95rem]">
-                      <span className="font-semibold">Prueba esto: </span>
-                      {t.tryThis}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {TEMPLATE_CATEGORIES.map((cat) => (
+              <div key={cat} className="mt-4">
+                <h3 className="mb-2 text-sm font-semibold text-gris-texto">{cat}</h3>
+                <ul className="flex flex-col gap-4">
+                  {TEMPLATES.filter((t) => t.category === cat).map((t) => (
+                    <li
+                      key={t.id}
+                      className="flex flex-col gap-3 rounded-xl border border-linea bg-papel p-4 sm:flex-row"
+                    >
+                      <span className="self-start rounded-lg bg-fondo p-1.5">
+                        <TemplatePreview template={t} width={160} height={72} />
+                      </span>
+                      <div>
+                        <h4 className="font-bold">{t.name}</h4>
+                        <p className="text-gris-texto">{t.summary}</p>
+                        <p className="mt-2 text-[0.95rem]">
+                          <span className="font-semibold">Prueba esto: </span>
+                          {t.tryThis}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </Section>
 
           <Section id="retos" title="Retos">
@@ -331,8 +341,35 @@ export default function GuiaPage() {
                 <kbd className="font-semibold">Supr</kbd> o <kbd className="font-semibold">Retroceso</kbd> borra lo
                 seleccionado · arrastra con el ratón para mover el lienzo y usa la rueda para acercar.
               </li>
-              <li>En el móvil, las salas se pueden ver pero no editar.</li>
+              <li>
+                <strong>En el móvil</strong> también se diseña: el botón <strong>+</strong> añade componentes y
+                plantillas, tocar una estación abre sus propiedades y «Conectar con…» une estaciones sin arrastrar.
+                Pellizca para acercar y arrastra con un dedo para moverte.
+              </li>
             </ul>
+          </Section>
+
+          <Section id="proyectos" title="Proyectos e imágenes">
+            <p>
+              Desde el menú <strong>Proyecto</strong> de la cabecera:
+            </p>
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-[11rem_1fr]">
+              <dt className="font-semibold">Exportar imagen</dt>
+              <dd className="text-gris-texto">
+                Descarga un PNG del diagrama completo (aunque no quepa en pantalla), con el nombre y la fecha. Para
+                trabajos, apuntes o presentaciones.
+              </dd>
+              <dt className="font-semibold">Guardar proyecto</dt>
+              <dd className="text-gris-texto">
+                Descarga un archivo <code>.distinode.json</code> con componentes, ajustes, conexiones y tráfico. Las
+                caídas temporales del caos no se guardan; las manuales sí.
+              </dd>
+              <dt className="font-semibold">Importar proyecto</dt>
+              <dd className="text-gris-texto">
+                Abre un archivo guardado y sustituye el diagrama (en una sala, para todos). Sirve para entregar una
+                práctica, recuperar una versión o pasar un diseño de la demo a una sala.
+              </dd>
+            </dl>
           </Section>
 
           <Section id="glosario" title="Glosario">
