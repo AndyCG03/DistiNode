@@ -5,7 +5,7 @@
 App web educativa para diseñar sistemas distribuidos **en equipo** y verlos funcionar **en vivo**.
 Cada petición es un tren que recorre un mapa de metro: Cliente → Balanceador → Servidores → Caché → Base de datos.
 
-Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`docs/plan.md`](docs/plan.md).
+Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`docs/plan.md`](docs/plan.md). Presentación en PDF (identidad y funcionalidades): [`docs/DistiNode-dossier.pdf`](docs/DistiNode-dossier.pdf).
 
 > **Rama `docker-postgres`**: versión autoalojada. Todo corre en tu servidor con `docker compose`:
 > PostgreSQL propio, autenticación con Better Auth y tiempo real con el servidor de Liveblocks autoalojado.
