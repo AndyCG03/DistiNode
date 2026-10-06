@@ -11,7 +11,7 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Nodos", template: "%s · Nodos" },
+  title: { default: "DistiNode", template: "%s · DistiNode" },
   description:
     "Diseña sistemas distribuidos en equipo y míralos funcionar en vivo: balanceadores, servidores, cachés y bases de datos.",
 };

@@ -37,7 +37,10 @@ export function useDiagram() {
   }, []);
 
   const moveNode = useMutation(({ storage }, id: string, x: number, y: number) => {
-    storage.get("nodes").get(id)?.update({ x: Math.round(x), y: Math.round(y) });
+    storage
+      .get("nodes")
+      .get(id)
+      ?.update({ x: Math.round(x), y: Math.round(y) });
   }, []);
 
   const removeElements = useMutation(({ storage }, nodeIds: string[], edgeIds: string[]) => {
@@ -98,7 +101,15 @@ export function useDiagram() {
       const id = newId();
       nodes.set(
         id,
-        new LiveObject({ id, kind, label, x, y, params: new LiveObject({ ...COMPONENTS[kind].defaults }), down: false }),
+        new LiveObject({
+          id,
+          kind,
+          label,
+          x,
+          y,
+          params: new LiveObject({ ...COMPONENTS[kind].defaults }),
+          down: false,
+        }),
       );
       if (prev) {
         const eid = newId();
@@ -109,5 +120,16 @@ export function useDiagram() {
     return true;
   }, []);
 
-  return { addNode, moveNode, removeElements, connect, setParam, setLabel, setDown, setRunning, setTraffic, loadExample };
+  return {
+    addNode,
+    moveNode,
+    removeElements,
+    connect,
+    setParam,
+    setLabel,
+    setDown,
+    setRunning,
+    setTraffic,
+    loadExample,
+  };
 }

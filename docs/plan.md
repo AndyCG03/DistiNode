@@ -1,7 +1,7 @@
-# Nodos — plan de la v1
+# DistiNode — plan de la v1
 
 App web educativa para diseñar sistemas distribuidos en equipo y verlos funcionar en vivo.
-Identidad visual: la de la CUJAE (verde institucional, gris del cubo isométrico, blanco y el hexágono).
+Identidad visual: la de la CUJAE (verde institucional, gris del cubo isométrico, blanco y el hexágono). Nombre: **DistiNode**..
 
 ## 1. Stack y decisiones
 
@@ -96,7 +96,7 @@ RLS activada en ambas:
 - Crear y unirse pasan por funciones `security definer` (`create_room(name)`, `join_room(code)`) que
   validan, generan el código único y escriben la membresía de forma atómica.
 
-### Liveblocks (estado compartido de la sala `nodos:<room.id>`)
+### Liveblocks (estado compartido de la sala `distinode:<room.id>`)
 
 ```ts
 Storage {
@@ -125,20 +125,22 @@ Liveblocks: recargar = recuperar el estado.
   Si un destino cae, las peticiones fallan hasta el siguiente chequeo; luego lo esquiva.
 - **Caché**: % de aciertos configurable; acierto = responde ya; fallo = pregunta aguas abajo.
 - **Cliente**: el tráfico total se reparte entre clientes.
-- Métricas (ventana de 2 s): completadas/s, latencia media (ms, cliente → cliente) y % de errores.
+- Métricas (ventana de 2 s): completadas/s, latencia media (ms de espera + proceso en los componentes) y % de errores.
 - La interfaz dibuja como máximo ~250 trenes por fotograma (muestreo estable por id) para mantener 60 fps.
 
 ## 4. Sistema de diseño
 
-Tomado del logo CUJAE: hexágono verde que envuelve un cubo isométrico gris y blanco; palabra "cujae" en
-minúsculas, humanista, verde. Metáfora: **mapa de metro**. Las conexiones son líneas verdes gruesas con
+Marca: el logo de DistiNode (`public/brand/distinode-original.jpg`, recreado en SVG en
+`src/components/Logo.tsx`): cuatro cubos isométricos —el cubo gris, blanco y verde de la CUJAE— unidos por un
+hexágono abierto, es decir, nodos de un sistema distribuido. Palabra "DistiNode" con "Disti" en verde.
+Metáfora de la interfaz: **mapa de metro**. Las conexiones son líneas verdes gruesas con
 tramos a 0°/45°; los nodos son estaciones blancas con anillo; las peticiones son trenes cortos.
 
 ### Colores (6)
 
 | Token | Claro | Oscuro | Uso |
 | --- | --- | --- | --- |
-| `--verde` | `#00704F` | `#2BA77B` | Marca, líneas de metro, trenes de petición, acción principal, estado sano |
+| `--verde` | `#00704F` | `#2BA77B` | Marca, líneas de metro, acción principal, estado sano |
 | `--gris` | `#A6A6A6` | `#A6A6A6` | Cara del cubo, líneas inactivas, trenes de respuesta (oscurecido a `#7A7F7C` en claro para contraste) |
 | `--tinta` | `#14211C` | `#E8EEEB` | Texto |
 | `--papel` | `#FFFFFF` / fondo `#F3F6F4` | `#16201C` / fondo `#0D1512` | Superficies |
@@ -167,7 +169,7 @@ logotipo "cujae"—, legible en tamaños pequeños y con cifras tabulares para l
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ ⬢ nodos  /  Nombre de sala  · ABC123 ⧉        ⬢⬢⬢ avatares  ◐   │  56 px
+│ ⬢ DistiNode /  Nombre de sala  · ABC123 ⧉        ⬢⬢⬢ avatares  ◐   │  56 px
 ├────────┬─────────────────────────────────────────────┬───────────┤
 │ Compo- │                                             │ Propieda- │
 │ nentes │        lienzo (rejilla de puntos suave)     │ des (solo │

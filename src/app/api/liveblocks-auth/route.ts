@@ -5,10 +5,11 @@ import { liveblocksSecret } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { avatarUrl, displayName } from "@/lib/user";
 
-const ROOM_RE = /^nodos:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+const ROOM_RE = /^distinode:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 let client: Liveblocks | null = null;
-const liveblocks = () => (client ??= new Liveblocks({ secret: liveblocksSecret(), baseUrl: process.env.LIVEBLOCKS_BASE_URL || undefined }));
+const liveblocks = () =>
+  (client ??= new Liveblocks({ secret: liveblocksSecret(), baseUrl: process.env.LIVEBLOCKS_BASE_URL || undefined }));
 
 /** Firma el acceso a una sala de Liveblocks solo si la persona es miembro (según Supabase + RLS). */
 export async function POST(request: NextRequest) {

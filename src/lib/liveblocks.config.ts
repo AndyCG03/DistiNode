@@ -46,4 +46,4 @@ declare global {
   }
 }
 
-export const roomIdFor = (id: string) => `nodos:${id}`;
+export const roomIdFor = (id: string) => `distinode:${id}`;

@@ -10,8 +10,8 @@ import { NodeLiveStats } from "./NodeLiveStats";
 export function PropertiesPanel({ selection, onClear }: { selection: Selection; onClear: () => void }) {
   const nodeId = selection.nodes.length === 1 && selection.edges.length === 0 ? selection.nodes[0] : null;
   const edgeId = selection.edges.length === 1 && selection.nodes.length === 0 ? selection.edges[0] : null;
-  const node = useStorage((root) => (nodeId ? root.nodes[nodeId] ?? null : null));
-  const edge = useStorage((root) => (edgeId ? root.edges[edgeId] ?? null : null));
+  const node = useStorage((root) => (nodeId ? (root.nodes[nodeId] ?? null) : null));
+  const edge = useStorage((root) => (edgeId ? (root.edges[edgeId] ?? null) : null));
   const edgeLabels = useStorage((root) =>
     edgeId && edge ? [root.nodes[edge.source]?.label ?? "?", root.nodes[edge.target]?.label ?? "?"] : null,
   );
@@ -21,7 +21,10 @@ export function PropertiesPanel({ selection, onClear }: { selection: Selection; 
   if (!node && !edge) return null;
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-linea bg-papel" aria-label="Propiedades">
+    <aside
+      className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-linea bg-papel"
+      aria-label="Propiedades"
+    >
       {node && (
         <div className="flex flex-col gap-5 p-4">
           <div className="flex items-center gap-3">
@@ -86,7 +89,9 @@ export function PropertiesPanel({ selection, onClear }: { selection: Selection; 
               {edgeLabels[0]} → {edgeLabels[1]}
             </p>
           </div>
-          <p className="text-sm text-gris-texto">Las peticiones van en el sentido de la flecha; las respuestas vuelven por la misma línea.</p>
+          <p className="text-sm text-gris-texto">
+            Las peticiones van en el sentido de la flecha; las respuestas vuelven por la misma línea.
+          </p>
           <button
             type="button"
             className="btn btn-borde h-10 text-rojo hover:!border-rojo"

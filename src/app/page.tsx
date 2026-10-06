@@ -28,8 +28,8 @@ export default async function Home() {
             Diseña sistemas distribuidos en equipo. <span className="text-verde">Y míralos funcionar.</span>
           </h1>
           <p className="mt-5 max-w-md text-lg text-gris-texto">
-            Un lienzo compartido donde cada petición es un tren. Descubre por qué hace falta un balanceador
-            cuando el servidor se pone en rojo.
+            Un lienzo compartido donde cada petición es un tren. Descubre por qué hace falta un balanceador cuando el
+            servidor se pone en rojo.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href={cta.href} className="btn btn-primario">
@@ -68,7 +68,7 @@ export default async function Home() {
         </ol>
       </section>
       <footer className="border-t border-linea py-6 text-center text-sm text-gris-texto">
-        Nodos · proyecto educativo de Sistemas Distribuidos — CUJAE
+        DistiNode · proyecto educativo de Sistemas Distribuidos — CUJAE
       </footer>
     </>
   );

@@ -23,7 +23,12 @@ const stations = [
 /** Ilustración de portada: un mini mapa de metro con tráfico. Decorativa. */
 export function MetroHero() {
   return (
-    <svg viewBox="0 0 560 290" className="h-auto w-full" role="img" aria-label="Un cliente envía peticiones a través de un balanceador hacia dos servidores y una base de datos">
+    <svg
+      viewBox="0 0 560 290"
+      className="h-auto w-full"
+      role="img"
+      aria-label="Un cliente envía peticiones a través de un balanceador hacia dos servidores y una base de datos"
+    >
       <g fill="none" stroke="var(--verde)" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
         <path d={ROUTE_A} />
         <path d={ROUTE_B} />
@@ -46,14 +51,7 @@ export function MetroHero() {
       {stations.map((s) => (
         <g key={s.label}>
           <circle cx={s.x} cy={s.y} r={13} fill="var(--papel)" stroke="var(--tinta)" strokeWidth={5} />
-          <text
-            x={s.x}
-            y={s.y + s.dy}
-            textAnchor="middle"
-            fontSize="15"
-            fontWeight={600}
-            fill="var(--tinta)"
-          >
+          <text x={s.x} y={s.y + s.dy} textAnchor="middle" fontSize="15" fontWeight={600} fill="var(--tinta)">
             {s.label}
           </text>
         </g>

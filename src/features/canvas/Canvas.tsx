@@ -20,6 +20,7 @@ import { Cursors } from "./Cursors";
 import { EmptyState } from "./EmptyState";
 import { MetroEdge, type MetroEdgeType } from "./MetroEdge";
 import { DND_TYPE } from "./Palette";
+import { TrafficLayer } from "./TrafficLayer";
 import type { Selection } from "./RoomView";
 import { NODE_H, NODE_W, StationNode, type Selector, type StationNodeType } from "./StationNode";
 import { useDiagram, useNotify } from "./useDiagram";
@@ -43,7 +44,10 @@ export function Canvas({
 }) {
   const nodes = useStorage((root) => root.nodes);
   const edges = useStorage((root) => root.edges);
-  const othersSelection = useOthersMapped((o) => ({ sel: o.presence.selected, name: o.info.name, color: o.info.color }), shallow);
+  const othersSelection = useOthersMapped(
+    (o) => ({ sel: o.presence.selected, name: o.info.name, color: o.info.color }),
+    shallow,
+  );
   const updateMyPresence = useUpdateMyPresence();
   const diagram = useDiagram();
   const notify = useNotify();
@@ -72,7 +76,13 @@ export function Canvas({
       id: n.id,
       type: "station",
       position: { x: n.x, y: n.y },
-      data: { label: n.label, kind: n.kind, down: n.down, params: n.params, selectedBy: selectorsByNode.get(n.id) ?? [] },
+      data: {
+        label: n.label,
+        kind: n.kind,
+        down: n.down,
+        params: n.params,
+        selectedBy: selectorsByNode.get(n.id) ?? [],
+      },
       selected: sel.has(n.id),
       measured: measured[n.id],
       width: NODE_W,
@@ -201,6 +211,7 @@ export function Canvas({
         <Controls showInteractive={false} position="bottom-right" />
         {children}
       </ReactFlow>
+      <TrafficLayer />
       <Cursors />
       {Object.keys(nodes).length === 0 && <EmptyState onLoadExample={loadExample} readOnly={readOnly} />}
     </div>

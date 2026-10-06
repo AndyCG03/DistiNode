@@ -1,6 +1,6 @@
 "use client";
 
-const KEY = "nodos-tema";
+const KEY = "distinode-tema";
 
 /** Script que corre antes de pintar para evitar el parpadeo de tema. */
 export const themeInitScript = `(function(){try{var t=localStorage.getItem("${KEY}");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="light"}})();`;

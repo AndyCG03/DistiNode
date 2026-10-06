@@ -33,8 +33,8 @@ export default async function SalaPage(props: PageProps<"/sala/[codigo]">) {
         <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 pb-24">
           <h1 className="text-2xl font-bold tracking-tight">Aún no estás en esta sala</h1>
           <p className="mt-2 mb-6 text-gris-texto">
-            Si te pasaron el código <span className="cifras font-semibold text-tinta">{code}</span>, únete y
-            entrarás al lienzo.
+            Si te pasaron el código <span className="cifras font-semibold text-tinta">{code}</span>, únete y entrarás al
+            lienzo.
           </p>
           <JoinRoomForm defaultCode={code} />
           <Link href="/salas" className="mt-6 text-sm font-semibold text-verde underline-offset-4 hover:underline">

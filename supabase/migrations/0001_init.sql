@@ -1,4 +1,4 @@
--- Nodos v1 — salas y miembros, con RLS.
+-- DistiNode v1 — salas y miembros, con RLS.
 -- Ejecuta este archivo en el editor SQL de Supabase (o con `supabase db push`).
 
 create table if not exists public.rooms (

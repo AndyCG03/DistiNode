@@ -6,7 +6,7 @@ import { HexIcon } from "./icons";
 import { NODE_H, NODE_W } from "./StationNode";
 import { useDiagram, useNotify } from "./useDiagram";
 
-export const DND_TYPE = "application/x-nodos-componente";
+export const DND_TYPE = "application/x-distinode-componente";
 
 export function Palette() {
   const { addNode } = useDiagram();

@@ -7,7 +7,9 @@ export function EmptyState({ onLoadExample, readOnly }: { onLoadExample: () => v
         <LogoMark size={44} />
         <h2 className="mt-4 text-xl font-bold">Un lienzo en blanco</h2>
         {readOnly ? (
-          <p className="mt-1 text-gris-texto">Abre la sala en un ordenador para diseñar. Aquí verás lo que construya tu equipo.</p>
+          <p className="mt-1 text-gris-texto">
+            Abre la sala en un ordenador para diseñar. Aquí verás lo que construya tu equipo.
+          </p>
         ) : (
           <>
             <p className="mt-1 text-gris-texto">

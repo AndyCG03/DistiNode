@@ -7,7 +7,9 @@ import { isValidCode, normalizeCode } from "@/lib/room-code";
 export type FormState = { error?: string };
 
 export async function createRoom(_prev: FormState, formData: FormData): Promise<FormState> {
-  const name = String(formData.get("name") ?? "").trim().slice(0, 60);
+  const name = String(formData.get("name") ?? "")
+    .trim()
+    .slice(0, 60);
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("create_room", { p_name: name || "Sala sin nombre" });
   if (error || typeof data !== "string") {

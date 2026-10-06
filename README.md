@@ -1,4 +1,4 @@
-# Nodos
+# DistiNode
 
 App web educativa para diseñar sistemas distribuidos **en equipo** y verlos funcionar **en vivo**.
 Cada petición es un tren que recorre un mapa de metro: Cliente → Balanceador → Servidores → Caché → Base de datos.
@@ -66,7 +66,7 @@ npm test            # pruebas del motor de simulación (Vitest)
 
 1. Sube el repositorio a GitHub e impórtalo en [vercel.com/new](https://vercel.com/new) (detecta Next.js solo).
 2. En **Settings → Environment Variables** añade las tres variables de `.env.example`.
-3. Despliega. Con el dominio final (`https://nodos-xxx.vercel.app` o el tuyo):
+3. Despliega. Con el dominio final (`https://distinode-xxx.vercel.app` o el tuyo):
    - Supabase → Authentication → URL Configuration: pon ese dominio como *Site URL* y añade
      `https://TU-DOMINIO/auth/callback` a *Redirect URLs*.
    - Google Cloud: no hay que tocar nada (la redirección va a Supabase).
@@ -76,4 +76,4 @@ npm test            # pruebas del motor de simulación (Vitest)
 - RLS en todas las tablas: una sala solo es visible para sus miembros; las membresías, solo para su dueño.
 - Crear y unirse se hace con funciones `security definer` que validan la sesión.
 - `/api/liveblocks-auth` comprueba la sesión de Supabase y la membresía antes de firmar el acceso a
-  `nodos:<id-de-sala>`; el nombre y color que ven los demás los fija el servidor.
+  `distinode:<id-de-sala>`; el nombre y color que ven los demás los fija el servidor.

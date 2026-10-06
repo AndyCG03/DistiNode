@@ -62,7 +62,10 @@ export function HexIcon({
   className?: string;
 }) {
   return (
-    <span className={`relative inline-grid shrink-0 place-items-center ${className}`} style={{ width: size, height: size }}>
+    <span
+      className={`relative inline-grid shrink-0 place-items-center ${className}`}
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} viewBox="0 0 100 100" className="absolute inset-0" aria-hidden="true">
         <polygon points="50,3 91,26.5 91,73.5 50,97 9,73.5 9,26.5" fill="currentColor" />
       </svg>
