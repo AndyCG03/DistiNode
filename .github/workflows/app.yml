@@ -1,0 +1,132 @@
+# App DistiNode (Flutter): pruebas en cada cambio y binarios para los releases.
+# - push / pull request que toquen app/: análisis + pruebas.
+# - release publicado: compila Linux (.deb y .tar.gz) y Android (.apk) y los adjunta al release.
+#   (Windows se compila en local con tool/build_windows.ps1 y se sube al crear el release.)
+# - workflow_dispatch: compila Linux, Android y Windows y los deja como artefactos para probarlos.
+name: App
+
+on:
+  push:
+    paths: ["app/**", ".github/workflows/app.yml"]
+  pull_request:
+    paths: ["app/**", ".github/workflows/app.yml"]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: "3.38.6"
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --exclude-tags capturas
+
+  linux:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    # 22.04: glibc más antigua, para que el binario funcione en más distribuciones.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencias de compilación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --exclude-tags capturas
+      - run: flutter build linux --release
+      - run: bash tool/package_linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distinode-linux
+          path: app/build/installer/*
+      - name: Adjuntar al release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" build/installer/* --clobber
+
+  android:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Clave de firma (opcional, secreto ANDROID_KEYSTORE_BASE64)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=distinode"
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+          } > android/key.properties
+      - run: flutter build apk --release
+      - name: Renombrar
+        run: |
+          VERSION=$(grep -oP '^version:\s*\K[0-9.]+' pubspec.yaml)
+          mkdir -p build/installer
+          cp build/app/outputs/flutter-apk/app-release.apk "build/installer/DistiNode-$VERSION-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distinode-android
+          path: app/build/installer/*
+      - name: Adjuntar al release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" build/installer/* --clobber
+
+  windows:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Inno Setup
+        run: choco install innosetup -y --no-progress
+      - run: flutter pub get
+      - run: powershell -ExecutionPolicy Bypass -File tool\build_windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distinode-windows
+          path: app/build/installer/*

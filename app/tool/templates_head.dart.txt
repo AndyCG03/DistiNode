@@ -1,0 +1,65 @@
+/// Plantillas: sistemas listos para cargar en un lienzo vacío (o sustituyendo el actual).
+/// Datos puros, generados a partir de `src/sim/templates.ts` (tool/gen_templates.py).
+library;
+
+import 'components.dart';
+
+class TemplateNode {
+  final String key;
+  final ComponentKind kind;
+  final String label;
+
+  /// Columna y fila en la rejilla de la plantilla.
+  final double col;
+  final double row;
+  final Params params;
+  const TemplateNode(this.key, this.kind, this.label, this.col, this.row, this.params);
+}
+
+enum TemplateCategory {
+  patrones('Patrones'),
+  reales('Sistemas reales');
+
+  final String label;
+  const TemplateCategory(this.label);
+}
+
+class TemplateEdge {
+  final String from;
+  final String to;
+  final double? latencyMs;
+  const TemplateEdge(this.from, this.to, {this.latencyMs});
+}
+
+class Template {
+  final String id;
+  final String name;
+  final TemplateCategory category;
+
+  /// Una frase: qué es.
+  final String summary;
+
+  /// Qué probar una vez cargada.
+  final String tryThis;
+  final double traffic;
+  final List<TemplateNode> nodes;
+  final List<TemplateEdge> edges;
+  const Template({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.summary,
+    required this.tryThis,
+    required this.traffic,
+    required this.nodes,
+    required this.edges,
+  });
+}
+
+const gridX = 250.0;
+const gridY = 110.0;
+
+TemplateNode _n(String key, ComponentKind kind, String label, num col, num row, [Params params = const {}]) =>
+    TemplateNode(key, kind, label, col.toDouble(), row.toDouble(), params);
+
+final List<Template> templates = [

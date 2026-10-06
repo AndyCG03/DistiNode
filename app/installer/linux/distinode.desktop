@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=DistiNode
+GenericName=Simulador de sistemas distribuidos
+Comment=Diseña sistemas distribuidos y míralos funcionar
+Exec=distinode
+Icon=distinode
+Terminal=false
+Categories=Education;Science;ComputerScience;Development;
+Keywords=sistemas;distribuidos;simulador;balanceador;servidor;caché;
+StartupWMClass=distinode
