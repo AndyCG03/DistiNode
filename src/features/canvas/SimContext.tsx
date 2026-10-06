@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
 import { useDiagramState } from "@/features/collab/context";
 import type { Metrics, NodeStats } from "@/sim/types";
-import { SimRuntime } from "./simRuntime";
+import { SimRuntime, type Sample } from "./simRuntime";
 
 const SimContext = createContext<SimRuntime | null>(null);
 
@@ -36,6 +36,11 @@ export function useNodeStats(id: string): NodeStats | null {
     () => rt.getStats(id),
     () => null,
   );
+}
+
+export function useHistory(): readonly Sample[] {
+  const rt = useSimRuntime();
+  return useSyncExternalStore(rt.subscribe, rt.getHistory, rt.getHistory);
 }
 
 export function useMetrics(): Metrics {

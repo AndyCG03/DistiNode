@@ -57,6 +57,13 @@ export function RoomHeader({ room, readOnly }: { room: RoomInfo | null; readOnly
         </span>
       )}
       <div className="ml-auto flex items-center gap-2">
+        <Link
+          href="/guia"
+          target="_blank"
+          className="hidden rounded-full px-3 py-1.5 text-sm font-semibold text-gris-texto hover:bg-verde-suave hover:text-tinta sm:block"
+        >
+          Guía
+        </Link>
         <PresenceBar />
         <ThemeToggle />
       </div>

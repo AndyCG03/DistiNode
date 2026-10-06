@@ -9,6 +9,12 @@ export function SiteHeader({ children }: { children?: React.ReactNode }) {
         <Logo />
       </Link>
       <div className="flex items-center gap-2">
+        <Link
+          href="/guia"
+          className="rounded-full px-3 py-1.5 text-sm font-semibold text-gris-texto hover:bg-verde-suave hover:text-tinta"
+        >
+          Guía
+        </Link>
         {children}
         <ThemeToggle />
       </div>

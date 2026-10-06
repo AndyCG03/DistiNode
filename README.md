@@ -7,20 +7,26 @@ Cada petición es un tren que recorre un mapa de metro: Cliente → Balanceador 
 
 Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`docs/plan.md`](docs/plan.md).
 
-## Qué hace la v1
+## Qué hace
 
 - Entrar con enlace mágico al correo o con Google.
 - Salas: crear, unirse con un código de 6 caracteres (o con el enlace de invitación) y "Mis salas".
-- Lienzo compartido en tiempo real: arrastrar Cliente, Balanceador, Servidor, Caché y Base de datos; conectar,
-  mover, borrar (Supr) y editar propiedades; cursores y avatares de quien está; borde con el color de quien
-  selecciona; avisos breves ("Ana tumbó Servidor 2"). Se guarda solo.
-- Simulación: ▶/⏸ (Espacio), tráfico 1–200 pet/s, trenes de petición (blancos), respuesta (grises) y error
-  (rojos); colas, saturación verde → ámbar → rojo, round-robin con chequeo de salud, caché con % de aciertos,
-  tumbar y revivir nodos, y métricas en vivo. El estado (▶, tráfico, nodos caídos) es compartido; cada
-  navegador ejecuta el motor localmente.
-- En móvil, solo lectura.
-- **Demo sin cuenta** (`/demo`): el mismo lienzo y la misma simulación, guardados en el navegador. Funciona aunque
-  el despliegue no tenga ninguna clave configurada.
+- Lienzo compartido en tiempo real: cursores y avatares de quien está, borde con el color de quien selecciona,
+  avisos breves ("Ana tumbó Servidor 2"). Se guarda solo.
+- **9 componentes** en tres familias: Cliente, CDN, API Gateway, Balanceador (por turnos o menos conexiones),
+  Servidor (también en modo microservicio: llama en paralelo a lo que tiene detrás), Worker, Caché,
+  Cola de mensajes y Base de datos.
+- **Simulación realista**: colas y saturación verde → ámbar → rojo, tiempos de espera y reintentos con espera
+  exponencial (tormentas de reintentos incluidas), límite de ritmo, trabajo asíncrono con reentrega, latencia
+  de red por línea y métricas en vivo con gráficas del último minuto: completadas/s, latencia p95, errores,
+  reintentos y trabajo en segundo plano.
+- **Fallos**: tumbar, degradar (lento) y cortar conexiones a mano; modo **Caos** (caídas, lentitud y cortes al
+  azar que se recuperan solos) y **caídas por sobrecarga** con reinicio automático. Compartidos por toda la sala.
+- **6 plantillas** listas para darle al ▶: lo esencial, alta disponibilidad, web a gran escala, trabajo en
+  segundo plano, microservicios y tormenta de reintentos.
+- **Guía** en la app (`/guia`): componentes con sus equivalentes reales, métricas, fallos, plantillas, retos
+  para clase y glosario. Documentación técnica del motor en [`docs/motor.md`](docs/motor.md).
+- En móvil, solo lectura. **Demo sin cuenta** (`/demo`), guardada en el navegador.
 
 ## Stack
 

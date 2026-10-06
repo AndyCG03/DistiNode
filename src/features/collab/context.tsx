@@ -16,6 +16,8 @@ type NoticeBus = { subscribe(fn: (n: Notice) => void): () => void };
 
 export type CollabValue = {
   mode: CollabMode;
+  /** Quien ejecuta el supervisor (caos, reinicios). En una sala, la conexión con el id más bajo. */
+  isLeader: boolean;
   diagram: DiagramState;
   actions: DiagramActions;
   me: Person;
@@ -28,6 +30,7 @@ export type CollabValue = {
 
 // Contextos separados: mover el ratón de otra persona solo re-renderiza los cursores.
 const ModeCtx = createContext<CollabMode>("local");
+const LeaderCtx = createContext(false);
 const DiagramCtx = createContext<DiagramState | null>(null);
 const ActionsCtx = createContext<DiagramActions | null>(null);
 const MeCtx = createContext<Person | null>(null);
@@ -40,21 +43,23 @@ const NoticesCtx = createContext<NoticeBus>({ subscribe: () => () => {} });
 export function CollabProvider({ value, children }: { value: CollabValue; children: React.ReactNode }) {
   return (
     <ModeCtx.Provider value={value.mode}>
-      <DiagramCtx.Provider value={value.diagram}>
-        <ActionsCtx.Provider value={value.actions}>
-          <MeCtx.Provider value={value.me}>
-            <PeopleCtx.Provider value={value.people}>
-              <CursorsCtx.Provider value={value.cursors}>
-                <SelectionsCtx.Provider value={value.selections}>
-                  <PresenceCtx.Provider value={value.updatePresence}>
-                    <NoticesCtx.Provider value={value.notices}>{children}</NoticesCtx.Provider>
-                  </PresenceCtx.Provider>
-                </SelectionsCtx.Provider>
-              </CursorsCtx.Provider>
-            </PeopleCtx.Provider>
-          </MeCtx.Provider>
-        </ActionsCtx.Provider>
-      </DiagramCtx.Provider>
+      <LeaderCtx.Provider value={value.isLeader}>
+        <DiagramCtx.Provider value={value.diagram}>
+          <ActionsCtx.Provider value={value.actions}>
+            <MeCtx.Provider value={value.me}>
+              <PeopleCtx.Provider value={value.people}>
+                <CursorsCtx.Provider value={value.cursors}>
+                  <SelectionsCtx.Provider value={value.selections}>
+                    <PresenceCtx.Provider value={value.updatePresence}>
+                      <NoticesCtx.Provider value={value.notices}>{children}</NoticesCtx.Provider>
+                    </PresenceCtx.Provider>
+                  </SelectionsCtx.Provider>
+                </CursorsCtx.Provider>
+              </PeopleCtx.Provider>
+            </MeCtx.Provider>
+          </ActionsCtx.Provider>
+        </DiagramCtx.Provider>
+      </LeaderCtx.Provider>
     </ModeCtx.Provider>
   );
 }
@@ -65,6 +70,7 @@ function required<T>(v: T | null, name: string): T {
 }
 
 export const useCollabMode = () => useContext(ModeCtx);
+export const useIsLeader = () => useContext(LeaderCtx);
 export const useDiagramState = () => required(useContext(DiagramCtx), "useDiagramState");
 export const useActions = () => required(useContext(ActionsCtx), "useActions");
 export const useMe = () => required(useContext(MeCtx), "useMe");

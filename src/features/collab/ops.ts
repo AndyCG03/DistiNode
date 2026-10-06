@@ -1,17 +1,10 @@
 import { COMPONENTS, nextLabel, type ComponentKind } from "@/sim/components";
-import type { DiagramState, NodeData } from "./types";
+import { GRID, type Template } from "@/sim/templates";
+import type { DiagramState, EdgeData, NodeData } from "./types";
 
 export const newId = () => crypto.randomUUID().slice(0, 12);
 
 export const EMPTY_DIAGRAM: DiagramState = { nodes: {}, edges: {}, sim: { running: false, traffic: 20 } };
-
-/** Cliente → Balanceador → Servidor → Base de datos. */
-export const EXAMPLE: { kind: ComponentKind; label: string; x: number; y: number }[] = [
-  { kind: "client", label: "Cliente", x: 0, y: 0 },
-  { kind: "balancer", label: "Balanceador", x: 260, y: 0 },
-  { kind: "server", label: "Servidor 1", x: 520, y: 0 },
-  { kind: "database", label: "Base de datos 1", x: 800, y: 0 },
-];
 
 export const clampTraffic = (t: number) => Math.min(200, Math.max(1, Math.round(t)));
 
@@ -31,4 +24,19 @@ export function makeNode(
     params: { ...COMPONENTS[kind].defaults },
     down: false,
   };
+}
+
+/** Nodos y aristas de una plantilla, con ids nuevos y posiciones en píxeles. */
+export function buildTemplate(t: Template): { nodes: NodeData[]; edges: EdgeData[] } {
+  const ids = new Map<string, string>();
+  const nodes = t.nodes.map((n) => {
+    const node: NodeData = {
+      ...makeNode(n.kind, n.col * GRID.x, n.row * GRID.y, [], n.label),
+      params: { ...COMPONENTS[n.kind].defaults, ...n.params },
+    };
+    ids.set(n.key, node.id);
+    return node;
+  });
+  const edges = t.edges.map(([a, b]) => ({ id: newId(), source: ids.get(a)!, target: ids.get(b)! }));
+  return { nodes, edges };
 }

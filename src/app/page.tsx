@@ -5,9 +5,12 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { getUser } from "@/lib/supabase/server";
 
 const steps = [
-  { title: "Coloca estaciones", text: "Clientes, balanceadores, servidores, cachés y bases de datos." },
+  {
+    title: "Coloca estaciones",
+    text: "CDN, API gateways, balanceadores, servidores, colas, workers, cachés y bases de datos.",
+  },
   { title: "Tiende las líneas", text: "Conecta los componentes como en un mapa de metro." },
-  { title: "Dale al ▶", text: "Sube el tráfico, tumba un servidor y mira qué pasa." },
+  { title: "Dale al ▶ y rómpelo", text: "Sube el tráfico, activa el caos, corta la red y mira qué aguanta." },
 ];
 
 export default async function Home() {

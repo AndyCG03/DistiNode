@@ -6,16 +6,18 @@ import {
   useBroadcastEvent,
   useEventListener,
   useMutation,
+  useOthersConnectionIds,
   useOthersMapped,
   useSelf,
   useStorage,
   useUpdateMyPresence,
 } from "@liveblocks/react/suspense";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { COMPONENTS, nextLabel, type ComponentKind, type ParamKey } from "@/sim/components";
+import type { Template } from "@/sim/templates";
 import { CollabProvider, createNoticeBus } from "./context";
-import { clampTraffic, EXAMPLE, newId } from "./ops";
-import type { DiagramActions, DiagramState } from "./types";
+import { buildTemplate, clampTraffic, newId } from "./ops";
+import type { DiagramActions, DiagramState, EdgePatch, NodeStatePatch, SimPatch } from "./types";
 
 /** Conecta la sala de Liveblocks con la interfaz. Debe ir dentro de RoomProvider + ClientSideSuspense. */
 export function LiveblocksBridge({ children }: { children: React.ReactNode }) {
@@ -41,11 +43,18 @@ export function LiveblocksBridge({ children }: { children: React.ReactNode }) {
     if (event.type === "notice") notices.emit({ text: event.text, color: user?.info.color ?? "var(--gris)" });
   });
 
-  const actions = useLiveActions(meInfo.name);
+  // Los avisos del sistema también se muestran a quien los genera (broadcast no se lo envía a uno mismo).
+  const onAnnounce = useCallback((text: string) => notices.emit({ text, color: "var(--rojo)" }), [notices]);
+  const actions = useLiveActions(meInfo.name, onAnnounce);
+
+  // Líder: la conexión con el id más bajo ejecuta el supervisor (caos y reinicios) para toda la sala.
+  const myConnection = useSelf((s) => s.connectionId);
+  const othersIds = useOthersConnectionIds();
+  const isLeader = othersIds.every((id) => myConnection < id);
 
   return (
     <CollabProvider
-      value={{ mode: "live", diagram, actions, me, people, cursors, selections, updatePresence, notices }}
+      value={{ mode: "live", isLeader, diagram, actions, me, people, cursors, selections, updatePresence, notices }}
     >
       {children}
     </CollabProvider>
@@ -53,7 +62,7 @@ export function LiveblocksBridge({ children }: { children: React.ReactNode }) {
 }
 
 /** Escrituras atómicas en el almacenamiento de Liveblocks. */
-function useLiveActions(myName: string): DiagramActions {
+function useLiveActions(myName: string, onAnnounce: (text: string) => void): DiagramActions {
   const broadcast = useBroadcastEvent();
 
   const addNode = useMutation(({ storage }, kind: ComponentKind, x: number, y: number) => {
@@ -115,8 +124,12 @@ function useLiveActions(myName: string): DiagramActions {
     storage.get("nodes").get(id)?.set("label", label.slice(0, 40));
   }, []);
 
-  const setDown = useMutation(({ storage }, id: string, down: boolean) => {
-    storage.get("nodes").get(id)?.set("down", down);
+  const setNodeState = useMutation(({ storage }, id: string, patch: NodeStatePatch) => {
+    storage.get("nodes").get(id)?.update(patch);
+  }, []);
+
+  const setEdge = useMutation(({ storage }, id: string, patch: EdgePatch) => {
+    storage.get("edges").get(id)?.update(patch);
   }, []);
 
   const setRunning = useMutation(({ storage }, running: boolean) => {
@@ -127,32 +140,20 @@ function useLiveActions(myName: string): DiagramActions {
     storage.get("sim").set("traffic", clampTraffic(traffic));
   }, []);
 
-  const loadExample = useMutation(({ storage }) => {
+  const setSimOptions = useMutation(({ storage }, patch: SimPatch) => {
+    storage.get("sim").update(patch);
+  }, []);
+
+  /** Sustituye todo el diagrama en una sola operación (los demás lo ven de golpe). */
+  const loadTemplate = useMutation(({ storage }, t: Template) => {
     const nodes = storage.get("nodes");
     const edges = storage.get("edges");
-    if (nodes.size > 0) return false;
-    let prev: string | null = null;
-    for (const { kind, label, x, y } of EXAMPLE) {
-      const id = newId();
-      nodes.set(
-        id,
-        new LiveObject({
-          id,
-          kind,
-          label,
-          x,
-          y,
-          params: new LiveObject({ ...COMPONENTS[kind].defaults }),
-          down: false,
-        }),
-      );
-      if (prev) {
-        const eid = newId();
-        edges.set(eid, new LiveObject({ id: eid, source: prev, target: id }));
-      }
-      prev = id;
-    }
-    return true;
+    for (const id of [...edges.keys()]) edges.delete(id);
+    for (const id of [...nodes.keys()]) nodes.delete(id);
+    const built = buildTemplate(t);
+    for (const n of built.nodes) nodes.set(n.id, new LiveObject({ ...n, params: new LiveObject(n.params) }));
+    for (const e of built.edges) edges.set(e.id, new LiveObject(e));
+    storage.get("sim").set("traffic", t.traffic);
   }, []);
 
   return useMemo(
@@ -163,11 +164,17 @@ function useLiveActions(myName: string): DiagramActions {
       connect,
       setParam,
       setLabel,
-      setDown,
+      setNodeState,
+      setEdge,
       setRunning,
       setTraffic,
-      loadExample,
+      setSimOptions,
+      loadTemplate,
       notify: (action: string) => broadcast({ type: "notice", text: `${myName} ${action}` }),
+      announce: (text: string) => {
+        broadcast({ type: "notice", text });
+        onAnnounce(text);
+      },
     }),
     [
       addNode,
@@ -176,12 +183,15 @@ function useLiveActions(myName: string): DiagramActions {
       connect,
       setParam,
       setLabel,
-      setDown,
+      setNodeState,
+      setEdge,
       setRunning,
       setTraffic,
-      loadExample,
+      setSimOptions,
+      loadTemplate,
       broadcast,
       myName,
+      onAnnounce,
     ],
   );
 }
