@@ -22,9 +22,14 @@ export function EmptyState({ canLoad, canEdit }: { canLoad: boolean; canEdit: bo
                 ? "Añade componentes, o empieza con un sistema hecho y dale al ▶."
                 : "Carga un sistema y dale al ▶."}
             </p>
-            <button type="button" className="btn btn-primario mt-5" onClick={() => load(TEMPLATES[0])}>
-              Cargar ejemplo
-            </button>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button type="button" className="btn btn-primario" onClick={() => load(TEMPLATES[0])}>
+                Cargar ejemplo
+              </button>
+              <button type="button" className="btn btn-borde" onClick={() => setAll(true)}>
+                Ver las {TEMPLATES.length} plantillas
+              </button>
+            </div>
             <p className="mt-6 mb-2 text-sm font-semibold text-gris-texto">o parte de un sistema real</p>
             <ul className="grid w-full gap-2 text-left sm:grid-cols-2">
               {FEATURED.map((id) => templateById(id)!).map((t) => (
@@ -33,13 +38,6 @@ export function EmptyState({ canLoad, canEdit }: { canLoad: boolean; canEdit: bo
                 </li>
               ))}
             </ul>
-            <button
-              type="button"
-              className="mt-3 text-sm font-semibold text-verde underline-offset-4 hover:underline"
-              onClick={() => setAll(true)}
-            >
-              Ver las {TEMPLATES.length} plantillas
-            </button>
             <TemplateDialog open={all} onClose={() => setAll(false)} replacing={false} />
           </>
         ) : (
