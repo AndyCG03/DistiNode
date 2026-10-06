@@ -1,0 +1,90 @@
+# DistiNode autoalojado: docker compose up -d --build
+# Configura .env a partir de .env.docker.example antes de arrancar.
+name: distinode
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: distinode
+      POSTGRES_USER: distinode
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      # Contraseña del rol distinode_app, con el que se conecta la app (RLS aplicada).
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Define APP_DB_PASSWORD en .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres/10-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U distinode -d distinode"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      MIGRATION_DATABASE_URL: postgres://distinode:${POSTGRES_PASSWORD}@db:5432/distinode
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  liveblocks:
+    build: ./docker/liveblocks
+    restart: unless-stopped
+    volumes:
+      - liveblocks-data:/data
+
+  mailpit:
+    # Recoge los correos del enlace mágico si no configuras un SMTP real. Bandeja: http://localhost:8025
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://distinode_app:${APP_DB_PASSWORD}@db:5432/distinode
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Define BETTER_AUTH_SECRET en .env}
+      BETTER_AUTH_URL: ${PUBLIC_URL:-http://localhost}
+      SMTP_URL: ${SMTP_URL:-smtp://mailpit:1025}
+      MAIL_FROM: ${MAIL_FROM:-DistiNode <no-responder@distinode.local>}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Por defecto, el servidor de Liveblocks propio. Para usar la nube: tu sk_… y LIVEBLOCKS_BASE_URL vacío.
+      LIVEBLOCKS_SECRET_KEY: ${LIVEBLOCKS_SECRET_KEY:-sk_localdev}
+      LIVEBLOCKS_BASE_URL: ${LIVEBLOCKS_BASE_URL-http://liveblocks:1153}
+      LIVEBLOCKS_PUBLIC_URL: ${LIVEBLOCKS_PUBLIC_URL:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      liveblocks:
+        condition: service_started
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  db-data:
+  liveblocks-data:
+  caddy-data:
+  caddy-config:

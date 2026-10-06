@@ -210,7 +210,9 @@ export function Canvas({
       </ReactFlow>
       <TrafficLayer />
       <Cursors />
-      {Object.keys(nodes).length === 0 && <EmptyState onLoadExample={loadExample} canLoad={canLoadExample} canEdit={!readOnly} />}
+      {Object.keys(nodes).length === 0 && (
+        <EmptyState onLoadExample={loadExample} canLoad={canLoadExample} canEdit={!readOnly} />
+      )}
     </div>
   );
 }

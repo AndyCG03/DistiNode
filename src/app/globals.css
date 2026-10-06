@@ -54,7 +54,7 @@
   --color-linea: var(--linea);
   --color-ambar: var(--ambar);
   --color-rojo: var(--rojo);
-  --font-sans: var(--font-source-sans), "Myriad Pro", system-ui, sans-serif;
+  --font-sans: "Source Sans 3 Variable", "Myriad Pro", system-ui, sans-serif;
   --shadow-flota: var(--sombra);
 }
 

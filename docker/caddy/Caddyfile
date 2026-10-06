@@ -1,0 +1,16 @@
+# SITE_ADDRESS=":80" sirve por HTTP en cualquier host. Con un dominio (p. ej. "distinode.midominio.cu")
+# Caddy obtiene y renueva el certificado HTTPS automáticamente.
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# Solo los WebSocket de Liveblocks (/v7, /v8) salen a internet.
+	# Su API de administración (/v2/...) queda dentro de la red de Docker.
+	@realtime path /v7 /v7/* /v8 /v8/*
+	handle @realtime {
+		reverse_proxy liveblocks:1153
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+}

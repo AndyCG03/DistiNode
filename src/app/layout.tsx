@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Source_Sans_3 } from "next/font/google";
+import "@fontsource-variable/source-sans-3";
 import { themeInitScript } from "@/components/ThemeToggle";
 import "./globals.css";
 
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-});
+// La configuración (base de datos, Liveblocks, Google) se lee al ejecutar, no al construir:
+// una misma imagen de Docker sirve para cualquier servidor.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { default: "DistiNode", template: "%s · DistiNode" },
@@ -25,7 +22,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${sourceSans.variable} h-full`} suppressHydrationWarning>
+    <html lang="es" className="h-full" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

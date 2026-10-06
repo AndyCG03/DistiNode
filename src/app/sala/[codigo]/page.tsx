@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SetupNotice } from "@/components/SetupNotice";
 import { SiteHeader } from "@/components/SiteHeader";
-import { isLiveblocksConfigured, isSupabaseConfigured } from "@/lib/env";
+import { getUser } from "@/lib/auth";
+import { isAuthConfigured, isLiveblocksConfigured, liveblocksPublicUrl } from "@/lib/env";
+import { findRoomByCode } from "@/lib/rooms";
 import { JoinRoomForm } from "@/app/salas/RoomForms";
 import { Room } from "@/features/canvas/Room";
 import { isValidCode, normalizeCode } from "@/lib/room-code";
-import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(props: PageProps<"/sala/[codigo]">): Promise<Metadata> {
   const { codigo } = await props.params;
@@ -17,25 +19,20 @@ export async function generateMetadata(props: PageProps<"/sala/[codigo]">): Prom
 export default async function SalaPage(props: PageProps<"/sala/[codigo]">) {
   const { codigo } = await props.params;
   const code = normalizeCode(codigo);
-  if (!isSupabaseConfigured())
+  if (!isAuthConfigured())
     return (
       <SetupNotice
-        service="Supabase (inicio de sesión)"
-        vars={["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]}
+        service="la base de datos (inicio de sesión)"
+        vars={["DATABASE_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "SMTP_URL"]}
       />
     );
   if (!isLiveblocksConfigured())
     return <SetupNotice service="Liveblocks (tiempo real)" vars={["LIVEBLOCKS_SECRET_KEY"]} />;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getUser();
   if (!user) redirect(`/entrar?next=/sala/${code}`);
 
   // RLS: solo devuelve la sala si soy miembro.
-  const { data: room } = isValidCode(code)
-    ? await supabase.from("rooms").select("id, code, name").eq("code", code).maybeSingle()
-    : { data: null };
+  const room = isValidCode(code) ? await findRoomByCode(user.id, code) : null;
 
   if (!room) {
     return (
@@ -56,5 +53,8 @@ export default async function SalaPage(props: PageProps<"/sala/[codigo]">) {
     );
   }
 
-  return <Room room={room} />;
+  // El navegador habla con Liveblocks en el mismo origen (Caddy) o en la URL configurada.
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("x-forwarded-host") ?? h.get("host")}`;
+  return <Room room={room} baseUrl={liveblocksPublicUrl(origin)} />;
 }

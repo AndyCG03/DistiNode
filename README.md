@@ -7,53 +7,131 @@ Cada petición es un tren que recorre un mapa de metro: Cliente → Balanceador 
 
 Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`docs/plan.md`](docs/plan.md).
 
-## Qué hace la v1
+> **Rama `docker-postgres`**: versión autoalojada. Todo corre en tu servidor con `docker compose`:
+> PostgreSQL propio, autenticación con Better Auth y tiempo real con el servidor de Liveblocks autoalojado.
+> No necesita Supabase, Vercel ni cuentas externas.
 
-- Entrar con enlace mágico al correo o con Google.
+## Qué hace
+
+- Entrar con enlace mágico al correo (y con Google, si lo configuras).
 - Salas: crear, unirse con un código de 6 caracteres (o con el enlace de invitación) y "Mis salas".
 - Lienzo compartido en tiempo real: arrastrar Cliente, Balanceador, Servidor, Caché y Base de datos; conectar,
-  mover, borrar (Supr) y editar propiedades; cursores y avatares de quien está; borde con el color de quien
-  selecciona; avisos breves ("Ana tumbó Servidor 2"). Se guarda solo.
-- Simulación: ▶/⏸ (Espacio), tráfico 1–200 pet/s, trenes de petición (blancos), respuesta (grises) y error
-  (rojos); colas, saturación verde → ámbar → rojo, round-robin con chequeo de salud, caché con % de aciertos,
-  tumbar y revivir nodos, y métricas en vivo. El estado (▶, tráfico, nodos caídos) es compartido; cada
-  navegador ejecuta el motor localmente.
-- En móvil, solo lectura.
-- **Demo sin cuenta** (`/demo`): el mismo lienzo y la misma simulación, guardados en el navegador. Funciona aunque
-  el despliegue no tenga ninguna clave configurada.
+  mover, borrar (Supr) y editar propiedades; cursores y avatares; borde con el color de quien selecciona;
+  avisos breves ("Ana tumbó Servidor 2"). Se guarda solo.
+- Simulación: ▶/⏸ (Espacio), tráfico 1–200 pet/s, trenes de petición, respuesta y error; colas, saturación
+  verde → ámbar → rojo, round-robin con chequeo de salud, caché con % de aciertos, tumbar y revivir nodos y
+  métricas en vivo.
+- En móvil, solo lectura. **Demo sin cuenta** en `/demo`, guardada en el navegador.
 
-## Stack
+## Arquitectura en Docker
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · React Flow · Liveblocks · Supabase · Vitest · Vercel.
+```
+             navegador
+                 │  http(s)://tu-dominio
+            ┌────▼────┐
+            │  caddy  │  HTTPS automático con dominio
+            └─┬─────┬─┘
+   /v7, /v8   │     │  todo lo demás
+   (WebSocket)│     │
+   ┌──────────▼─┐ ┌─▼───────┐      ┌──────────┐
+   │ liveblocks │ │   app   │─────▶│    db    │  PostgreSQL 17
+   │ (tiempo    │◀┤ Next.js │      │ (volumen)│
+   │  real)     │ └────┬────┘      └────▲─────┘
+   └────────────┘      │ SMTP           │
+                  ┌────▼────┐     ┌─────┴────┐
+                  │ mailpit │     │ migrate  │  aplica db/migrations y termina
+                  └─────────┘     └──────────┘
+```
 
-## Puesta en marcha local
+| Servicio | Qué es |
+| --- | --- |
+| `db` | PostgreSQL 17. Datos en el volumen `db-data`. |
+| `migrate` | Aplica `db/migrations/*.sql` (una vez cada una) y termina. La app espera a que acabe. |
+| `app` | Next.js en modo `standalone`. Se conecta como `distinode_app`, un rol sin privilegios: RLS decide qué salas ve cada persona. |
+| `liveblocks` | Servidor de Liveblocks autoalojado (AGPL-3.0, el mismo núcleo que su nube). Diagramas en el volumen `liveblocks-data`. |
+| `caddy` | Proxy inverso: un único origen para la web y el WebSocket. Con un dominio, certificado HTTPS automático. |
+| `mailpit` | Bandeja de pruebas para los correos del enlace mágico (http://localhost:8025). En producción usa un SMTP real. |
 
-Requisitos: Node.js 20.9 o superior.
+## Puesta en marcha con Docker
+
+Requisitos: Docker con el plugin Compose (Docker Desktop o Docker Engine en Linux).
+
+```bash
+git clone https://github.com/andycg03/web-sistemas-distribuidos.git
+cd web-sistemas-distribuidos
+git checkout docker-postgres
+
+cp .env.docker.example .env
+# Rellena en .env: POSTGRES_PASSWORD, APP_DB_PASSWORD y BETTER_AUTH_SECRET
+#   openssl rand -base64 32     (una vez por cada valor)
+
+docker compose up -d --build
+```
+
+Abre http://localhost. Para entrar: escribe tu correo, abre http://localhost:8025 (Mailpit), pulsa el enlace
+del correo y ya estás dentro. Crea una sala y comparte su enlace o su código.
+
+Comandos útiles:
+
+```bash
+docker compose ps                 # estado de los servicios
+docker compose logs -f app        # registros de la app
+docker compose up -d --build      # actualizar tras un git pull (las migraciones nuevas se aplican solas)
+docker compose down               # parar (los datos quedan en los volúmenes)
+docker compose exec db pg_dump -U distinode distinode > copia.sql   # copia de seguridad
+```
+
+### Ponerlo en línea (servidor con dominio)
+
+1. Un servidor Linux con Docker y los puertos 80 y 443 abiertos.
+2. Un registro DNS `A` de tu dominio (p. ej. `distinode.midominio.cu`) apuntando a la IP del servidor.
+3. En `.env`:
+   ```bash
+   SITE_ADDRESS=distinode.midominio.cu
+   PUBLIC_URL=https://distinode.midominio.cu
+   SMTP_URL=smtp://usuario:clave@smtp.tuproveedor.com:587   # para que los correos salgan de verdad
+   MAIL_FROM=DistiNode <no-responder@midominio.cu>
+   ```
+4. `docker compose up -d --build`. Caddy obtiene el certificado HTTPS de Let's Encrypt en el primer acceso.
+5. Con SMTP real ya no necesitas Mailpit: quita el servicio o no publiques su puerto (`MAILPIT_PORT`), porque
+   su bandeja muestra todos los correos enviados.
+
+Sin dominio también funciona por IP: deja `SITE_ADDRESS=:80` y pon `PUBLIC_URL=http://IP-DEL-SERVIDOR`.
+
+### Google (opcional)
+
+En [Google Cloud Console](https://console.cloud.google.com/apis/credentials) crea un *OAuth client ID* de tipo
+*Web application* con la redirect URI `${PUBLIC_URL}/api/auth/callback/google`, y pon `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET` en `.env`. El botón "Continuar con Google" aparece solo cuando están definidos.
+
+### Liveblocks: propio o en la nube
+
+Por defecto el tiempo real lo da el contenedor `liveblocks`, sin cuentas. Ten en cuenta su modelo de seguridad:
+ese servidor **no firma los tokens de acceso**, así que la protección de cada sala se basa en que su
+identificador (un UUID aleatorio) solo se entrega a sus miembros, y en que Caddy expone únicamente los WebSocket
+(`/v7`, `/v8`) y no su API de administración. Es adecuado para clases y equipos; si necesitas una garantía
+estricta, usa la nube de Liveblocks:
+
+```bash
+LIVEBLOCKS_SECRET_KEY=sk_...   # de liveblocks.io → tu proyecto → API keys
+LIVEBLOCKS_BASE_URL=           # vacío: usar la nube
+```
+
+## Desarrollo sin Docker
+
+Requisitos: Node.js 20.9+, un PostgreSQL y (para el lienzo) `npx liveblocks dev`.
 
 ```bash
 npm install
-cp .env.example .env.local   # y rellena las claves (ver abajo)
-npm run dev                  # http://localhost:3000
+cp .env.example .env.local        # y rellénalo
+# En tu Postgres, crea una vez el rol de la app:
+#   create role distinode_app login password 'CLAVE' nosuperuser nobypassrls;
+npm run db:migrate                # usa MIGRATION_DATABASE_URL (dueño de las tablas)
+npx liveblocks dev                # en otra terminal
+npm run dev                       # http://localhost:3000
 ```
 
-### Sin cuentas: Liveblocks en local
-
-Para desarrollar el lienzo sin crear un proyecto en Liveblocks puedes usar su servidor local:
-
-```bash
-npx liveblocks dev            # http://localhost:1153
-```
-
-y en `.env.local`:
-
-```bash
-LIVEBLOCKS_SECRET_KEY=sk_localdev
-LIVEBLOCKS_BASE_URL=http://localhost:1153
-NEXT_PUBLIC_LIVEBLOCKS_BASE_URL=http://localhost:1153
-```
-
-Las dos variables `*_BASE_URL` son opcionales: si no están, se usa el servicio real de Liveblocks.
-Supabase sigue haciendo falta para entrar y crear salas.
+Para ver los correos del enlace mágico sin SMTP real: `docker run -p 8025:8025 -p 1025:1025 axllent/mailpit`.
 
 ### Comprobaciones
 
@@ -63,84 +141,31 @@ npm run typecheck   # tipos de rutas + tsc
 npm test            # pruebas del motor de simulación (Vitest)
 ```
 
-## Claves
-
-`.env.example` lista todas las variables. Ningún valor viene de serie: cada uno sale de tu cuenta.
-
-### Supabase (autenticación y salas)
-
-1. Crea un proyecto en [supabase.com](https://supabase.com/dashboard).
-2. **Project Settings → API** (o el botón **Connect**):
-   - `NEXT_PUBLIC_SUPABASE_URL` = *Project URL*.
-   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` = la clave **publishable** (`sb_publishable_…`).
-     La clave *anon* heredada también sirve. Nunca uses la *service_role* / *secret* aquí.
-3. **SQL Editor**: pega y ejecuta [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-   Crea `rooms` y `room_members` con RLS activada, y las funciones `create_room` y `join_room`.
-4. **Authentication → URL Configuration**:
-   - *Site URL*: `http://localhost:3000` en desarrollo (luego, tu dominio de Vercel).
-   - *Redirect URLs*: añade `http://localhost:3000/auth/callback` y `https://TU-DOMINIO/auth/callback`.
-5. **Enlace mágico**: viene activado (Authentication → Providers → Email). El enlace funciona en el mismo
-   navegador donde lo pediste. Para que funcione en cualquiera, cambia la plantilla *Magic Link* para que apunte a
-   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email`.
-   El correo de pruebas de Supabase tiene un límite bajo de envíos por hora; para clase configura un SMTP propio
-   (Authentication → Emails → SMTP Settings).
-6. **Google**:
-   1. En [Google Cloud Console](https://console.cloud.google.com/apis/credentials) crea un *OAuth client ID*
-      de tipo *Web application*.
-   2. *Authorized redirect URI*: la que te muestra Supabase en Authentication → Providers → Google
-      (`https://<tu-proyecto>.supabase.co/auth/v1/callback`).
-   3. Copia *Client ID* y *Client secret* en ese mismo formulario de Supabase y actívalo.
-
-### Liveblocks (tiempo real)
-
-1. Crea un proyecto en [liveblocks.io](https://liveblocks.io/dashboard).
-2. **API keys** → copia la **secret key** (`sk_…`) en `LIVEBLOCKS_SECRET_KEY`.
-   Es solo de servidor: la usa `/api/liveblocks-auth` para emitir tokens únicamente a miembros de la sala.
-   La clave pública no hace falta.
-
-## Desplegar en Vercel
-
-La app se puede desplegar **sin ninguna variable**: la portada y la demo (`/demo`) funcionan enteras, y
-"Entrar", "Mis salas" y las salas muestran un aviso de qué falta en lugar de fallar. Con las claves se activan
-el inicio de sesión, las salas y la colaboración en tiempo real.
-
-1. Importa el repositorio en [vercel.com/new](https://vercel.com/new) (detecta Next.js solo; no hace falta
-   cambiar ningún comando). Si la rama de trabajo no es `main`, elígela como *Production Branch* en
-   Settings → Git, o fusiónala en `main`.
-2. Cuando tengas las claves, en **Settings → Environment Variables** añade las tres variables de `.env.example`
-   (para *Production* y *Preview*) y vuelve a desplegar (Deployments → ⋯ → Redeploy). Las `NEXT_PUBLIC_*` se
-   incrustan al compilar, así que hay que redesplegar tras cambiarlas.
-3. Con el dominio final (`https://distinode-xxx.vercel.app` o el tuyo):
-   - Supabase → Authentication → URL Configuration: pon ese dominio como *Site URL* y añade
-     `https://TU-DOMINIO/auth/callback` a *Redirect URLs*.
-   - Google Cloud: no hay que tocar nada (la redirección va a Supabase).
-
 ## Cómo comprobar la v1
 
-1. Abre la app en dos navegadores (o uno normal y otro privado) con dos usuarios distintos.
-2. Usuario A: crea una sala y copia el enlace (botón junto al código). Usuario B: ábrelo y pulsa "Unirme".
+1. Abre la app en dos navegadores (o uno normal y otro privado) y entra con dos correos distintos.
+2. A crea una sala y copia el enlace (junto al código). B lo abre y pulsa "Unirme".
 3. Mueve el ratón y un nodo en A: B ve el cursor con nombre y el cambio al momento.
 4. En la sala vacía, "Cargar ejemplo" y ▶ (o Espacio): los trenes empiezan a circular.
-5. Sube el tráfico a ~70 pet/s: Servidor 1 se pone rojo, sube la latencia y aparecen errores.
-6. Arrastra otro Servidor, conecta Balanceador → Servidor 2 → Base de datos: los dos vuelven a verde.
-7. Selecciona un servidor y pulsa "Tumbar": aparecen errores (trenes rojos) y, tras el chequeo de salud
-   (1 s por defecto), el balanceador deja de enviarle tráfico.
-8. Recarga: el diagrama sigue ahí.
-
-## Arquitectura (y lo que viene)
-
-- `src/sim/` es el motor: TypeScript puro, paso fijo, semilla y pruebas. No sabe nada de React.
-- `src/sim/components.ts` es el registro de componentes: añadir uno (p. ej. "Cola de mensajes") es una entrada
-  ahí + su comportamiento en `engine.ts`; la barra lateral y el panel de propiedades se generan solos.
-- Lecciones y misiones: un escenario = grafo inicial + objetivos evaluados sobre `engine.metrics()`; al ser
-  determinista se puede comprobar sin interfaz.
-- Modo caos, chat y galería encajan como eventos de sala (`RoomEvent`) y nuevas claves del almacenamiento
-  de Liveblocks; la galería, como una tabla más en Supabase con RLS.
-- Edición en móvil: hoy el lienzo es de solo lectura por debajo de 768 px (`useIsMobile`).
+5. Sube el tráfico a ~70 pet/s: Servidor 1 se pone rojo.
+6. Arrastra otro Servidor y conecta Balanceador → Servidor 2 → Base de datos: los dos vuelven a verde.
+7. Tumba un servidor: aparecen errores y, tras el chequeo de salud (1 s), el balanceador lo esquiva.
+8. Recarga (o reinicia con `docker compose restart`): el diagrama sigue ahí.
 
 ## Seguridad
 
-- RLS en todas las tablas: una sala solo es visible para sus miembros; las membresías, solo para su dueño.
-- Crear y unirse se hace con funciones `security definer` que validan la sesión.
-- `/api/liveblocks-auth` comprueba la sesión de Supabase y la membresía antes de firmar el acceso a
-  `distinode:<id-de-sala>`; el nombre y color que ven los demás los fija el servidor.
+- La app se conecta a Postgres como `distinode_app` (sin superusuario ni `BYPASSRLS`). Cada consulta de salas
+  fija `app.user_id` en su transacción y las políticas RLS de `rooms` y `room_members` filtran por él.
+- Crear y unirse pasan por funciones `security definer` (`create_room`, `join_room`) que validan la sesión.
+- `/api/liveblocks-auth` comprueba la sesión y la membresía antes de firmar el acceso a `distinode:<id-de-sala>`;
+  el nombre y color que ven los demás los fija el servidor.
+- Enlace mágico: un solo uso, caduca en 15 minutos, máximo 5 envíos por minuto.
+
+## Arquitectura del código (y lo que viene)
+
+- `src/sim/` es el motor: TypeScript puro, paso fijo, semilla y pruebas. No sabe nada de React.
+- `src/sim/components.ts` es el registro de componentes: añadir uno es una entrada ahí + su comportamiento en
+  `engine.ts`; la barra lateral y el panel se generan solos.
+- `src/features/collab/` separa el lienzo del transporte: Liveblocks (salas) o local (demo).
+- `db/migrations/` y `scripts/migrate.mjs`: el esquema de Postgres, versionado.
+- Lecciones y misiones: un escenario = grafo inicial + objetivos evaluados sobre `engine.metrics()`.

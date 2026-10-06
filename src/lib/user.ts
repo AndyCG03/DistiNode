@@ -1,16 +1,14 @@
-import type { User } from "@supabase/supabase-js";
+export type AppUser = { id: string; email: string; name?: string | null; image?: string | null };
 
-export function displayName(user: Pick<User, "email" | "user_metadata">): string {
-  const meta = user.user_metadata ?? {};
-  const name = (meta.full_name || meta.name || "") as string;
-  if (name.trim()) return name.trim();
+export function displayName(user: Pick<AppUser, "email" | "name">): string {
+  const name = (user.name ?? "").trim();
+  if (name) return name;
   const local = (user.email ?? "").split("@")[0];
   return local ? local.charAt(0).toUpperCase() + local.slice(1) : "Invitado";
 }
 
-export function avatarUrl(user: Pick<User, "user_metadata">): string | undefined {
-  const meta = user.user_metadata ?? {};
-  return (meta.avatar_url || meta.picture || undefined) as string | undefined;
+export function avatarUrl(user: Pick<AppUser, "image">): string | undefined {
+  return user.image || undefined;
 }
 
 export function initials(name: string): string {

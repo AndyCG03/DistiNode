@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { MetroHero } from "@/components/MetroHero";
 import { SiteHeader } from "@/components/SiteHeader";
-import { isSupabaseConfigured } from "@/lib/env";
-import { getUser } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
+import { isAuthConfigured } from "@/lib/env";
 
 const steps = [
   { title: "Coloca estaciones", text: "Clientes, balanceadores, servidores, cachés y bases de datos." },
@@ -11,7 +11,7 @@ const steps = [
 ];
 
 export default async function Home() {
-  const accounts = isSupabaseConfigured();
+  const accounts = isAuthConfigured();
   const user = await getUser().catch(() => null);
   const cta = !accounts
     ? null

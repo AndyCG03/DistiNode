@@ -10,14 +10,18 @@ import { roomIdFor } from "@/lib/liveblocks.config";
 import { LiveblocksBridge } from "@/features/collab/LiveblocksBridge";
 import { RoomView, type RoomInfo } from "./RoomView";
 
-export function Room({ room, authEndpoint = "/api/liveblocks-auth" }: { room: RoomInfo; authEndpoint?: string }) {
+export function Room({
+  room,
+  baseUrl,
+  authEndpoint = "/api/liveblocks-auth",
+}: {
+  room: RoomInfo;
+  /** Servidor de Liveblocks propio; sin valor, la nube de Liveblocks. */
+  baseUrl?: string;
+  authEndpoint?: string;
+}) {
   return (
-    <LiveblocksProvider
-      authEndpoint={authEndpoint}
-      baseUrl={process.env.NEXT_PUBLIC_LIVEBLOCKS_BASE_URL || undefined}
-      throttle={16}
-      preventUnsavedChanges
-    >
+    <LiveblocksProvider authEndpoint={authEndpoint} baseUrl={baseUrl} throttle={16} preventUnsavedChanges>
       <RoomProvider
         id={roomIdFor(room.id)}
         initialPresence={{ cursor: null, selected: [] }}

@@ -197,3 +197,16 @@ logotipo "cujae"—, legible en tamaños pequeños y con cifras tabulares para l
 2. Lienzo colaborativo.
 3. Motor de simulación con pruebas.
 4. Pulido visual.
+
+## 6. Variante autoalojada (rama `docker-postgres`)
+
+| Pieza | Rama principal | `docker-postgres` |
+| --- | --- | --- |
+| Auth | Supabase Auth | Better Auth (enlace mágico + Google) sobre PostgreSQL |
+| Salas | Supabase (Postgres + RLS) | PostgreSQL 17 propio + RLS con `app.user_id` por transacción |
+| Tiempo real | Liveblocks (nube) | Servidor de Liveblocks autoalojado (o la nube, configurable) |
+| Despliegue | Vercel | `docker compose` (db, migrate, app, liveblocks, caddy, mailpit) |
+
+El lienzo, el motor y la demo son idénticos en las dos ramas. Las tablas de Better Auth (`user`, `session`,
+`account`, `verification`) están en `db/migrations/0001_auth.sql`; `rooms` y `room_members` con sus políticas,
+en `0002_rooms.sql`.
