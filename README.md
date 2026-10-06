@@ -31,6 +31,14 @@ Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`do
 - **También en el móvil**: botón + para añadir componentes y plantillas, propiedades en una hoja inferior y
   «Conectar con…» para unir estaciones sin arrastrar. **Demo sin cuenta** (`/demo`), guardada en el navegador.
 
+## App para Windows, Linux y Android (sin cuentas)
+
+En [`app/`](app/) está DistiNode en Flutter: todas las funciones de diseño y simulación de la web, pero
+**totalmente local** (sin registro, sin servidor y sin conexión). Los proyectos se guardan como archivos
+`.distinode.json`, compatibles con la web. Descárgala desde
+[Releases](https://github.com/AndyCG03/web-sistemas-distribuidos/releases): instalador para Windows, `.deb` y
+`.tar.gz` para Linux y `.apk` para Android. Detalles en [`app/README.md`](app/README.md).
+
 ## Stack
 
 Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · React Flow · Liveblocks · Supabase · Vitest · Vercel.

@@ -1,0 +1,34 @@
+name: distinode
+description: "DistiNode: diseña sistemas distribuidos y míralos funcionar. Versión de escritorio, sin cuentas."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  path_provider: ^2.1.6
+  file_selector: ^1.1.0
+  path_drawing: ^1.0.1
+  share_plus: ^13.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: SourceSans3
+      fonts:
+        - asset: assets/fonts/SourceSans3-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/SourceSans3-Semibold.ttf
+          weight: 600
+        - asset: assets/fonts/SourceSans3-Bold.ttf
+          weight: 700
