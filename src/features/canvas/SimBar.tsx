@@ -1,18 +1,15 @@
 "use client";
 
-import { useStorage } from "@liveblocks/react/suspense";
+import { useActions, useDiagramState } from "@/features/collab/context";
 import { useEffect, useRef } from "react";
 import { useMetrics } from "./SimContext";
-import { useDiagram, useNotify } from "./useDiagram";
 
 const fmt = new Intl.NumberFormat("es", { maximumFractionDigits: 0 });
 
 /** Barra flotante: ▶/⏸, tráfico y métricas en vivo. */
 export function SimBar({ readOnly }: { readOnly: boolean }) {
-  const running = useStorage((root) => root.sim.running);
-  const traffic = useStorage((root) => root.sim.traffic);
-  const { setRunning, setTraffic } = useDiagram();
-  const notify = useNotify();
+  const { running, traffic } = useDiagramState().sim;
+  const { setRunning, setTraffic, notify } = useActions();
   const m = useMetrics();
   const lastTraffic = useRef(traffic);
 

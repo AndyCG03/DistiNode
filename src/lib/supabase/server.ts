@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { supabaseEnv } from "@/lib/env";
+import { isSupabaseConfigured, supabaseEnv } from "@/lib/env";
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -22,6 +22,7 @@ export async function createClient() {
 }
 
 export async function getUser() {
+  if (!isSupabaseConfigured()) return null;
   const supabase = await createClient();
   const {
     data: { user },

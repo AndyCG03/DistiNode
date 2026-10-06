@@ -2,7 +2,6 @@
 
 import "@xyflow/react/dist/base.css";
 
-import { shallow, useOthersMapped, useStorage, useUpdateMyPresence } from "@liveblocks/react/suspense";
 import {
   Background,
   BackgroundVariant,
@@ -15,6 +14,7 @@ import {
   type OnDelete,
 } from "@xyflow/react";
 import { useEffect, useMemo, useState } from "react";
+import { useActions, useDiagramState, useSelections, useUpdatePresence } from "@/features/collab/context";
 import { isComponentKind } from "@/sim/components";
 import { Cursors } from "./Cursors";
 import { EmptyState } from "./EmptyState";
@@ -23,7 +23,6 @@ import { DND_TYPE } from "./Palette";
 import { TrafficLayer } from "./TrafficLayer";
 import type { Selection } from "./RoomView";
 import { NODE_H, NODE_W, StationNode, type Selector, type StationNodeType } from "./StationNode";
-import { useDiagram, useNotify } from "./useDiagram";
 
 const nodeTypes = { station: StationNode };
 const edgeTypes = { metro: MetroEdge };
@@ -35,22 +34,20 @@ export function Canvas({
   selection,
   onSelectionChange,
   readOnly,
+  canLoadExample,
   children,
 }: {
   selection: Selection;
   onSelectionChange: (s: Selection) => void;
   readOnly: boolean;
+  canLoadExample: boolean;
   children?: React.ReactNode;
 }) {
-  const nodes = useStorage((root) => root.nodes);
-  const edges = useStorage((root) => root.edges);
-  const othersSelection = useOthersMapped(
-    (o) => ({ sel: o.presence.selected, name: o.info.name, color: o.info.color }),
-    shallow,
-  );
-  const updateMyPresence = useUpdateMyPresence();
-  const diagram = useDiagram();
-  const notify = useNotify();
+  const { nodes, edges } = useDiagramState();
+  const othersSelection = useSelections();
+  const updateMyPresence = useUpdatePresence();
+  const diagram = useActions();
+  const notify = diagram.notify;
   const flow = useReactFlow();
   const [measured, setMeasured] = useState<Record<string, Size>>({});
 
@@ -64,8 +61,8 @@ export function Canvas({
 
   const selectorsByNode = useMemo(() => {
     const map = new Map<string, Selector[]>();
-    for (const [, o] of othersSelection) {
-      for (const id of o.sel) map.set(id, [...(map.get(id) ?? []), { name: o.name, color: o.color }]);
+    for (const o of othersSelection) {
+      for (const id of o.selected) map.set(id, [...(map.get(id) ?? []), { name: o.name, color: o.color }]);
     }
     return map;
   }, [othersSelection]);
@@ -213,7 +210,7 @@ export function Canvas({
       </ReactFlow>
       <TrafficLayer />
       <Cursors />
-      {Object.keys(nodes).length === 0 && <EmptyState onLoadExample={loadExample} readOnly={readOnly} />}
+      {Object.keys(nodes).length === 0 && <EmptyState onLoadExample={loadExample} canLoad={canLoadExample} canEdit={!readOnly} />}
     </div>
   );
 }

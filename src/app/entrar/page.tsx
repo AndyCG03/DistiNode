@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { SetupNotice } from "@/components/SetupNotice";
 import { SiteHeader } from "@/components/SiteHeader";
+import { isSupabaseConfigured } from "@/lib/env";
 import { getUser } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
 import { LoginForm } from "./LoginForm";
@@ -12,6 +14,13 @@ export default async function EntrarPage(props: PageProps<"/entrar">) {
   const next = safeNext(typeof params.next === "string" ? params.next : null);
   const error = typeof params.error === "string" ? params.error : null;
 
+  if (!isSupabaseConfigured())
+    return (
+      <SetupNotice
+        service="Supabase (inicio de sesión)"
+        vars={["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]}
+      />
+    );
   if (await getUser().catch(() => null)) redirect(next);
 
   return (

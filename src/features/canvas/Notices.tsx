@@ -1,7 +1,7 @@
 "use client";
 
-import { useEventListener } from "@liveblocks/react/suspense";
 import { useState } from "react";
+import { useNoticeListener } from "@/features/collab/context";
 
 type Notice = { id: number; text: string; color: string };
 let seq = 0;
@@ -10,10 +10,9 @@ let seq = 0;
 export function Notices() {
   const [items, setItems] = useState<Notice[]>([]);
 
-  useEventListener(({ event, user }) => {
-    if (event.type !== "notice") return;
+  useNoticeListener(({ text, color }) => {
     const id = ++seq;
-    setItems((prev) => [...prev.slice(-3), { id, text: event.text, color: user?.info.color ?? "var(--gris)" }]);
+    setItems((prev) => [...prev.slice(-3), { id, text, color }]);
     setTimeout(() => setItems((prev) => prev.filter((n) => n.id !== id)), 3500);
   });
 

@@ -13,6 +13,16 @@ export function supabaseEnv() {
   };
 }
 
+/** Sin Supabase la app sigue funcionando: portada y demo; entrar y salas muestran un aviso. */
+export function isSupabaseConfigured(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+}
+
+/** Solo en el servidor. */
+export function isLiveblocksConfigured(): boolean {
+  return Boolean(process.env.LIVEBLOCKS_SECRET_KEY);
+}
+
 export function liveblocksSecret() {
   return required("LIVEBLOCKS_SECRET_KEY", process.env.LIVEBLOCKS_SECRET_KEY);
 }

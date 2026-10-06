@@ -4,13 +4,12 @@ import { useReactFlow } from "@xyflow/react";
 import { COMPONENTS, COMPONENT_ORDER, type ComponentKind } from "@/sim/components";
 import { HexIcon } from "./icons";
 import { NODE_H, NODE_W } from "./StationNode";
-import { useDiagram, useNotify } from "./useDiagram";
+import { useActions } from "@/features/collab/context";
 
 export const DND_TYPE = "application/x-distinode-componente";
 
 export function Palette() {
-  const { addNode } = useDiagram();
-  const notify = useNotify();
+  const { addNode, notify } = useActions();
   const flow = useReactFlow();
 
   /** Con teclado o clic: lo coloca en el centro de la vista. */

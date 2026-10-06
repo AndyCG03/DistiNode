@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MetroHero } from "@/components/MetroHero";
 import { SiteHeader } from "@/components/SiteHeader";
+import { isSupabaseConfigured } from "@/lib/env";
 import { getUser } from "@/lib/supabase/server";
 
 const steps = [
@@ -10,13 +11,18 @@ const steps = [
 ];
 
 export default async function Home() {
+  const accounts = isSupabaseConfigured();
   const user = await getUser().catch(() => null);
-  const cta = user ? { href: "/salas", label: "Ir a mis salas" } : { href: "/entrar", label: "Empezar" };
+  const cta = !accounts
+    ? null
+    : user
+      ? { href: "/salas", label: "Ir a mis salas" }
+      : { href: "/entrar", label: "Crear una sala" };
 
   return (
     <>
       <SiteHeader>
-        {!user && (
+        {accounts && !user && (
           <Link href="/entrar" className="btn btn-borde h-9 px-4 text-sm">
             Entrar
           </Link>
@@ -32,11 +38,18 @@ export default async function Home() {
             servidor se pone en rojo.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href={cta.href} className="btn btn-primario">
-              {cta.label}
+            {cta && (
+              <Link href={cta.href} className="btn btn-primario">
+                {cta.label}
+              </Link>
+            )}
+            <Link href="/demo" className={cta ? "btn btn-borde" : "btn btn-primario"}>
+              {cta ? "Probar sin cuenta" : "Probar la demo"}
             </Link>
-            <span className="text-sm text-gris-texto">Gratis, en el navegador, sin instalar nada.</span>
           </div>
+          <p className="mt-3 text-sm text-gris-texto">
+            Gratis, en el navegador, sin instalar nada.{cta ? " La demo se guarda solo en tu navegador." : ""}
+          </p>
         </section>
         <div className="panel p-4 md:p-6">
           <MetroHero />

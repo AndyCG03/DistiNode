@@ -1,22 +1,20 @@
 "use client";
 
-import { useStorage } from "@liveblocks/react/suspense";
+import { useActions, useDiagramState } from "@/features/collab/context";
 import { COMPONENTS, paramValue, type ParamSpec } from "@/sim/components";
 import { HexIcon } from "./icons";
 import type { Selection } from "./RoomView";
-import { useDiagram, useNotify } from "./useDiagram";
 import { NodeLiveStats } from "./NodeLiveStats";
 
 export function PropertiesPanel({ selection, onClear }: { selection: Selection; onClear: () => void }) {
   const nodeId = selection.nodes.length === 1 && selection.edges.length === 0 ? selection.nodes[0] : null;
   const edgeId = selection.edges.length === 1 && selection.nodes.length === 0 ? selection.edges[0] : null;
-  const node = useStorage((root) => (nodeId ? (root.nodes[nodeId] ?? null) : null));
-  const edge = useStorage((root) => (edgeId ? (root.edges[edgeId] ?? null) : null));
-  const edgeLabels = useStorage((root) =>
-    edgeId && edge ? [root.nodes[edge.source]?.label ?? "?", root.nodes[edge.target]?.label ?? "?"] : null,
-  );
-  const diagram = useDiagram();
-  const notify = useNotify();
+  const { nodes, edges } = useDiagramState();
+  const node = nodeId ? (nodes[nodeId] ?? null) : null;
+  const edge = edgeId ? (edges[edgeId] ?? null) : null;
+  const edgeLabels = edge ? [nodes[edge.source]?.label ?? "?", nodes[edge.target]?.label ?? "?"] : null;
+  const diagram = useActions();
+  const notify = diagram.notify;
 
   if (!node && !edge) return null;
 

@@ -19,6 +19,8 @@ Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`do
   tumbar y revivir nodos, y métricas en vivo. El estado (▶, tráfico, nodos caídos) es compartido; cada
   navegador ejecuta el motor localmente.
 - En móvil, solo lectura.
+- **Demo sin cuenta** (`/demo`): el mismo lienzo y la misma simulación, guardados en el navegador. Funciona aunque
+  el despliegue no tenga ninguna clave configurada.
 
 ## Stack
 
@@ -98,9 +100,17 @@ npm test            # pruebas del motor de simulación (Vitest)
 
 ## Desplegar en Vercel
 
-1. Sube el repositorio a GitHub e impórtalo en [vercel.com/new](https://vercel.com/new) (detecta Next.js solo).
-2. En **Settings → Environment Variables** añade las tres variables de `.env.example`.
-3. Despliega. Con el dominio final (`https://distinode-xxx.vercel.app` o el tuyo):
+La app se puede desplegar **sin ninguna variable**: la portada y la demo (`/demo`) funcionan enteras, y
+"Entrar", "Mis salas" y las salas muestran un aviso de qué falta en lugar de fallar. Con las claves se activan
+el inicio de sesión, las salas y la colaboración en tiempo real.
+
+1. Importa el repositorio en [vercel.com/new](https://vercel.com/new) (detecta Next.js solo; no hace falta
+   cambiar ningún comando). Si la rama de trabajo no es `main`, elígela como *Production Branch* en
+   Settings → Git, o fusiónala en `main`.
+2. Cuando tengas las claves, en **Settings → Environment Variables** añade las tres variables de `.env.example`
+   (para *Production* y *Preview*) y vuelve a desplegar (Deployments → ⋯ → Redeploy). Las `NEXT_PUBLIC_*` se
+   incrustan al compilar, así que hay que redesplegar tras cambiarlas.
+3. Con el dominio final (`https://distinode-xxx.vercel.app` o el tuyo):
    - Supabase → Authentication → URL Configuration: pon ese dominio como *Site URL* y añade
      `https://TU-DOMINIO/auth/callback` a *Redirect URLs*.
    - Google Cloud: no hay que tocar nada (la redirección va a Supabase).

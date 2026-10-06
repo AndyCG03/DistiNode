@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SetupNotice } from "@/components/SetupNotice";
 import { SiteHeader } from "@/components/SiteHeader";
+import { isSupabaseConfigured } from "@/lib/env";
 import { UserMenu } from "@/components/UserMenu";
 import { colorFor } from "@/lib/colors";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +17,13 @@ type RoomRow = { role: string; joined_at: string; rooms: { id: string; code: str
 const dateFmt = new Intl.DateTimeFormat("es", { day: "numeric", month: "short" });
 
 export default async function SalasPage() {
+  if (!isSupabaseConfigured())
+    return (
+      <SetupNotice
+        service="Supabase (inicio de sesión)"
+        vars={["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]}
+      />
+    );
   const supabase = await createClient();
   const {
     data: { user },

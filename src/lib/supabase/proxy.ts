@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { supabaseEnv } from "@/lib/env";
+import { isSupabaseConfigured, supabaseEnv } from "@/lib/env";
 
 const PROTECTED = ["/salas", "/sala/"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  // Despliegue sin Supabase: no hay sesiones que refrescar; las páginas explican qué falta.
+  if (!isSupabaseConfigured()) return response;
   const { url, key } = supabaseEnv();
 
   const supabase = createServerClient(url, key, {

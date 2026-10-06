@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SetupNotice } from "@/components/SetupNotice";
 import { SiteHeader } from "@/components/SiteHeader";
+import { isLiveblocksConfigured, isSupabaseConfigured } from "@/lib/env";
 import { JoinRoomForm } from "@/app/salas/RoomForms";
 import { Room } from "@/features/canvas/Room";
 import { isValidCode, normalizeCode } from "@/lib/room-code";
@@ -15,6 +17,15 @@ export async function generateMetadata(props: PageProps<"/sala/[codigo]">): Prom
 export default async function SalaPage(props: PageProps<"/sala/[codigo]">) {
   const { codigo } = await props.params;
   const code = normalizeCode(codigo);
+  if (!isSupabaseConfigured())
+    return (
+      <SetupNotice
+        service="Supabase (inicio de sesión)"
+        vars={["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]}
+      />
+    );
+  if (!isLiveblocksConfigured())
+    return <SetupNotice service="Liveblocks (tiempo real)" vars={["LIVEBLOCKS_SECRET_KEY"]} />;
   const supabase = await createClient();
   const {
     data: { user },

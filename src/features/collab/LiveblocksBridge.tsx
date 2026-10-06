@@ -1,26 +1,68 @@
 "use client";
 
 import { LiveObject } from "@liveblocks/client";
-import { useBroadcastEvent, useMutation, useSelf } from "@liveblocks/react/suspense";
-import { useCallback } from "react";
+import {
+  shallow,
+  useBroadcastEvent,
+  useEventListener,
+  useMutation,
+  useOthersMapped,
+  useSelf,
+  useStorage,
+  useUpdateMyPresence,
+} from "@liveblocks/react/suspense";
+import { useMemo, useState } from "react";
 import { COMPONENTS, nextLabel, type ComponentKind, type ParamKey } from "@/sim/components";
+import { CollabProvider, createNoticeBus } from "./context";
+import { clampTraffic, EXAMPLE, newId } from "./ops";
+import type { DiagramActions, DiagramState } from "./types";
 
-const newId = () => crypto.randomUUID().slice(0, 12);
+/** Conecta la sala de Liveblocks con la interfaz. Debe ir dentro de RoomProvider + ClientSideSuspense. */
+export function LiveblocksBridge({ children }: { children: React.ReactNode }) {
+  const nodes = useStorage((root) => root.nodes);
+  const edges = useStorage((root) => root.edges);
+  const sim = useStorage((root) => root.sim);
+  const diagram = useMemo<DiagramState>(() => ({ nodes, edges, sim }), [nodes, edges, sim]);
 
-/** Avisos breves para los demás: "Ana tumbó Servidor 2". */
-export function useNotify() {
-  const broadcast = useBroadcastEvent();
-  const name = useSelf((me) => me.info.name);
-  return useCallback((action: string) => broadcast({ type: "notice", text: `${name} ${action}` }), [broadcast, name]);
+  const meInfo = useSelf((s) => s.info);
+  const meId = useSelf((s) => s.id ?? String(s.connectionId));
+  const me = useMemo(() => ({ key: meId, ...meInfo }), [meId, meInfo]);
+
+  const peopleRaw = useOthersMapped((o) => o.info, shallow);
+  const cursorsRaw = useOthersMapped((o) => ({ ...o.info, cursor: o.presence.cursor }), shallow);
+  const selectionsRaw = useOthersMapped((o) => ({ ...o.info, selected: o.presence.selected }), shallow);
+  const people = useMemo(() => peopleRaw.map(([k, info]) => ({ key: String(k), ...info })), [peopleRaw]);
+  const cursors = useMemo(() => cursorsRaw.map(([k, c]) => ({ key: String(k), ...c })), [cursorsRaw]);
+  const selections = useMemo(() => selectionsRaw.map(([k, s]) => ({ key: String(k), ...s })), [selectionsRaw]);
+
+  const updatePresence = useUpdateMyPresence();
+  const [notices] = useState(createNoticeBus);
+  useEventListener(({ event, user }) => {
+    if (event.type === "notice") notices.emit({ text: event.text, color: user?.info.color ?? "var(--gris)" });
+  });
+
+  const actions = useLiveActions(meInfo.name);
+
+  return (
+    <CollabProvider
+      value={{ mode: "live", diagram, actions, me, people, cursors, selections, updatePresence, notices }}
+    >
+      {children}
+    </CollabProvider>
+  );
 }
 
-/** Todas las escrituras al diagrama compartido. Cada una es atómica en Liveblocks. */
-export function useDiagram() {
+/** Escrituras atómicas en el almacenamiento de Liveblocks. */
+function useLiveActions(myName: string): DiagramActions {
+  const broadcast = useBroadcastEvent();
+
   const addNode = useMutation(({ storage }, kind: ComponentKind, x: number, y: number) => {
     const nodes = storage.get("nodes");
-    const labels = [...nodes.values()].map((n) => n.get("label"));
     const id = newId();
-    const label = nextLabel(kind, labels);
+    const label = nextLabel(
+      kind,
+      [...nodes.values()].map((n) => n.get("label")),
+    );
     nodes.set(
       id,
       new LiveObject({
@@ -82,22 +124,15 @@ export function useDiagram() {
   }, []);
 
   const setTraffic = useMutation(({ storage }, traffic: number) => {
-    storage.get("sim").set("traffic", Math.min(200, Math.max(1, Math.round(traffic))));
+    storage.get("sim").set("traffic", clampTraffic(traffic));
   }, []);
 
-  /** Cliente → Balanceador → Servidor → Base de datos, en una sola operación. */
   const loadExample = useMutation(({ storage }) => {
     const nodes = storage.get("nodes");
     const edges = storage.get("edges");
     if (nodes.size > 0) return false;
-    const chain: [ComponentKind, string, number, number][] = [
-      ["client", "Cliente", 0, 0],
-      ["balancer", "Balanceador", 260, 0],
-      ["server", "Servidor 1", 520, 0],
-      ["database", "Base de datos 1", 800, 0],
-    ];
     let prev: string | null = null;
-    for (const [kind, label, x, y] of chain) {
+    for (const { kind, label, x, y } of EXAMPLE) {
       const id = newId();
       nodes.set(
         id,
@@ -120,16 +155,33 @@ export function useDiagram() {
     return true;
   }, []);
 
-  return {
-    addNode,
-    moveNode,
-    removeElements,
-    connect,
-    setParam,
-    setLabel,
-    setDown,
-    setRunning,
-    setTraffic,
-    loadExample,
-  };
+  return useMemo(
+    () => ({
+      addNode,
+      moveNode,
+      removeElements,
+      connect,
+      setParam,
+      setLabel,
+      setDown,
+      setRunning,
+      setTraffic,
+      loadExample,
+      notify: (action: string) => broadcast({ type: "notice", text: `${myName} ${action}` }),
+    }),
+    [
+      addNode,
+      moveNode,
+      removeElements,
+      connect,
+      setParam,
+      setLabel,
+      setDown,
+      setRunning,
+      setTraffic,
+      loadExample,
+      broadcast,
+      myName,
+    ],
+  );
 }

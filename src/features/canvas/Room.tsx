@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { roomIdFor } from "@/lib/liveblocks.config";
+import { LiveblocksBridge } from "@/features/collab/LiveblocksBridge";
 import { RoomView, type RoomInfo } from "./RoomView";
 
 export function Room({ room, authEndpoint = "/api/liveblocks-auth" }: { room: RoomInfo; authEndpoint?: string }) {
@@ -43,7 +44,9 @@ export function Room({ room, authEndpoint = "/api/liveblocks-auth" }: { room: Ro
                 </Centered>
               }
             >
-              <RoomView room={room} />
+              <LiveblocksBridge>
+                <RoomView room={room} />
+              </LiveblocksBridge>
             </ClientSideSuspense>
           </AccessGuard>
         </ErrorBoundary>

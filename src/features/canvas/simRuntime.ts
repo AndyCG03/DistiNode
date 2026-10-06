@@ -1,5 +1,4 @@
-import type { EdgeRecord, NodeRecord } from "@/lib/liveblocks.config";
-import type { Params } from "@/sim/components";
+import type { EdgeData, NodeData } from "@/features/collab/types";
 import { Engine } from "@/sim/engine";
 import type { Metrics, NodeStats, SimGraph } from "@/sim/types";
 import { endpoints, metroPoints, polyline, type Polyline } from "./geometry";
@@ -8,8 +7,6 @@ import { NODE_H, NODE_W } from "./StationNode";
 /** Velocidad visual de los trenes (px del lienzo por segundo). */
 const SPEED = 260;
 const PUBLISH_MS = 200;
-
-type NodeJson = Omit<NodeRecord, "params"> & { params: Params };
 
 const ZERO: Metrics = { throughput: 0, avgLatencyMs: 0, errorRate: 0, inFlight: 0 };
 
@@ -27,7 +24,7 @@ export class SimRuntime {
   private lastPublish = 0;
   private dirty = true;
 
-  sync(nodes: Readonly<Record<string, NodeJson>>, edges: Readonly<Record<string, EdgeRecord>>) {
+  sync(nodes: Readonly<Record<string, NodeData>>, edges: Readonly<Record<string, EdgeData>>) {
     this.polylines.clear();
     const graph: SimGraph = { nodes: [], edges: [] };
     for (const n of Object.values(nodes)) {

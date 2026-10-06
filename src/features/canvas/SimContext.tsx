@@ -1,7 +1,7 @@
 "use client";
 
-import { useStorage } from "@liveblocks/react/suspense";
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { useDiagramState } from "@/features/collab/context";
 import type { Metrics, NodeStats } from "@/sim/types";
 import { SimRuntime } from "./simRuntime";
 
@@ -10,10 +10,11 @@ const SimContext = createContext<SimRuntime | null>(null);
 /** Crea el motor local y lo mantiene al día con el estado compartido de la sala. */
 export function SimProvider({ children }: { children: React.ReactNode }) {
   const [runtime] = useState(() => new SimRuntime());
-  const nodes = useStorage((root) => root.nodes);
-  const edges = useStorage((root) => root.edges);
-  const running = useStorage((root) => root.sim.running);
-  const traffic = useStorage((root) => root.sim.traffic);
+  const {
+    nodes,
+    edges,
+    sim: { running, traffic },
+  } = useDiagramState();
 
   useEffect(() => runtime.sync(nodes, edges), [runtime, nodes, edges]);
   useEffect(() => runtime.setTraffic(traffic), [runtime, traffic]);

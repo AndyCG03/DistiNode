@@ -1,22 +1,19 @@
 "use client";
 
-import { shallow, useOthersMapped } from "@liveblocks/react/suspense";
 import { useViewport } from "@xyflow/react";
+import { useCursors } from "@/features/collab/context";
 
 /** Cursores de los demás, en coordenadas del lienzo convertidas a pantalla. */
 export function Cursors() {
-  const others = useOthersMapped(
-    (o) => ({ cursor: o.presence.cursor, name: o.info.name, color: o.info.color }),
-    shallow,
-  );
+  const others = useCursors();
   const { x, y, zoom } = useViewport();
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
-      {others.map(([id, o]) =>
+      {others.map((o) =>
         o.cursor ? (
           <div
-            key={id}
+            key={o.key}
             className="absolute top-0 left-0 transition-transform duration-75 ease-linear"
             style={{ transform: `translate(${o.cursor.x * zoom + x}px, ${o.cursor.y * zoom + y}px)` }}
           >

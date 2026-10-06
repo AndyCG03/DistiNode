@@ -1,7 +1,7 @@
 import { Liveblocks } from "@liveblocks/node";
 import type { NextRequest } from "next/server";
 import { colorFor } from "@/lib/colors";
-import { liveblocksSecret } from "@/lib/env";
+import { isLiveblocksConfigured, isSupabaseConfigured, liveblocksSecret } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { avatarUrl, displayName } from "@/lib/user";
 
@@ -13,6 +13,9 @@ const liveblocks = () =>
 
 /** Firma el acceso a una sala de Liveblocks solo si la persona es miembro (según Supabase + RLS). */
 export async function POST(request: NextRequest) {
+  if (!isSupabaseConfigured() || !isLiveblocksConfigured()) {
+    return new Response("Faltan claves de Supabase o Liveblocks en este despliegue", { status: 503 });
+  }
   const supabase = await createClient();
   const {
     data: { user },
