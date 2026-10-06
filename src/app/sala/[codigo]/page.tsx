@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { JoinRoomForm } from "@/app/salas/RoomForms";
+import { Room } from "@/features/canvas/Room";
 import { isValidCode, normalizeCode } from "@/lib/room-code";
 import { createClient } from "@/lib/supabase/server";
 
@@ -44,11 +45,5 @@ export default async function SalaPage(props: PageProps<"/sala/[codigo]">) {
     );
   }
 
-  return (
-    <main className="grid flex-1 place-items-center">
-      <p className="text-gris-texto">
-        {room.name} · {room.code}
-      </p>
-    </main>
-  );
+  return <Room room={room} />;
 }
