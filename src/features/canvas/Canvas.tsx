@@ -20,6 +20,7 @@ import { Cursors } from "./Cursors";
 import { EmptyState } from "./EmptyState";
 import { MetroEdge, type MetroEdgeType } from "./MetroEdge";
 import { DND_TYPE } from "./Palette";
+import { fitOptions } from "./fit";
 import { TrafficLayer } from "./TrafficLayer";
 import type { Selection } from "./RoomView";
 import { NODE_H, NODE_W, StationNode, type Selector, type StationNodeType } from "./StationNode";
@@ -27,6 +28,7 @@ import { NODE_H, NODE_W, StationNode, type Selector, type StationNodeType } from
 const nodeTypes = { station: StationNode };
 const edgeTypes = { metro: MetroEdge };
 const DELETE_KEYS = ["Delete", "Backspace"];
+const fitView0 = fitOptions();
 
 type Size = { width: number; height: number };
 
@@ -195,14 +197,14 @@ export function Canvas({
         elementsSelectable={!readOnly}
         connectionRadius={36}
         fitView
-        fitViewOptions={{ padding: 0.35, maxZoom: 1.1 }}
+        fitViewOptions={fitView0}
         minZoom={0.25}
         maxZoom={2}
         attributionPosition="bottom-left"
         aria-label="Diagrama del sistema"
       >
         <Background variant={BackgroundVariant.Dots} gap={24} size={1.6} color="var(--punto)" />
-        <Controls showInteractive={false} position="bottom-right" />
+        <Controls showInteractive={false} position="bottom-right" className="max-sm:!hidden" />
         {children}
       </ReactFlow>
       <TrafficLayer />

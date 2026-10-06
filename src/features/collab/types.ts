@@ -43,6 +43,8 @@ export interface DiagramActions {
   setSimOptions(patch: SimPatch): void;
   /** Sustituye el diagrama por una plantilla. */
   loadTemplate(template: Template): void;
+  /** Sustituye todo el diagrama (importar un proyecto). */
+  replaceDiagram(nodes: NodeData[], edges: EdgeData[], sim?: SimPatch & { traffic?: number }): void;
   /** Aviso breve para los demás: "Ana tumbó Servidor 2". */
   notify(action: string): void;
   /** Aviso del sistema (caos, sobrecarga) para todos, también para quien lo genera. */

@@ -12,21 +12,44 @@ import { useActions } from "@/features/collab/context";
 
 export const DND_TYPE = "application/x-distinode-componente";
 
-export function Palette() {
+/** El hueco libre más cercano a (x, y): en espiral por filas y columnas de estación. */
+export function freeSpot(x: number, y: number, taken: { x: number; y: number }[]) {
+  const gapX = NODE_W + 40;
+  const gapY = NODE_H + 30;
+  const free = (px: number, py: number) => taken.every((n) => Math.abs(n.x - px) >= gapX || Math.abs(n.y - py) >= gapY);
+  for (let r = 0; r < 12; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const px = x + dx * (gapX / 2);
+        const py = y + dy * gapY;
+        if (free(px, py)) return { x: px, y: py };
+      }
+    }
+  }
+  return { x, y };
+}
+
+/** Añade un componente en el centro de la vista (clic, teclado o móvil). Devuelve su id. */
+export function useAddAtCenter() {
   const { addNode, notify } = useActions();
   const { nodes } = useDiagramState();
-  const [templatesOpen, setTemplatesOpen] = useState(false);
   const flow = useReactFlow();
-
-  /** Con teclado o clic: lo coloca en el centro de la vista. */
-  function addAtCenter(kind: ComponentKind) {
+  return (kind: ComponentKind): string | null => {
     const pane = document.querySelector(".react-flow")?.getBoundingClientRect();
-    if (!pane) return;
-    const jitter = () => (Math.random() - 0.5) * 60;
-    const p = flow.screenToFlowPosition({ x: pane.left + pane.width / 2, y: pane.top + pane.height / 2 });
-    const { label } = addNode(kind, p.x - NODE_W / 2 + jitter(), p.y - NODE_H / 2 + jitter());
+    if (!pane) return null;
+    const c = flow.screenToFlowPosition({ x: pane.left + pane.width / 2, y: pane.top + pane.height / 2 });
+    const spot = freeSpot(c.x - NODE_W / 2, c.y - NODE_H / 2, Object.values(nodes));
+    const { id, label } = addNode(kind, spot.x, spot.y);
     notify(`añadió ${label}`);
-  }
+    return id;
+  };
+}
+
+export function Palette() {
+  const { nodes } = useDiagramState();
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const addAtCenter = useAddAtCenter();
 
   return (
     <aside className="flex w-52 shrink-0 flex-col border-r border-linea bg-papel" aria-labelledby="paleta">

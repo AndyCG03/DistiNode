@@ -5,10 +5,11 @@ import { useState } from "react";
 import { LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresenceBar } from "./PresenceBar";
+import { ProjectMenu } from "./ProjectMenu";
 import type { RoomInfo } from "./RoomView";
 
 /** `room` null = modo demo (solo en este navegador). */
-export function RoomHeader({ room, readOnly }: { room: RoomInfo | null; readOnly: boolean }) {
+export function RoomHeader({ room, compact }: { room: RoomInfo | null; compact: boolean }) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
@@ -51,12 +52,8 @@ export function RoomHeader({ room, readOnly }: { room: RoomInfo | null; readOnly
           <span className="text-xs tracking-normal">{copied ? "¡copiado!" : "copiar enlace"}</span>
         </button>
       )}
-      {readOnly && (
-        <span className="shrink-0 rounded-full border border-linea px-2 py-0.5 text-xs whitespace-nowrap text-gris-texto">
-          Solo lectura
-        </span>
-      )}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <ProjectMenu name={room ? room.name : "Demo"} compact={compact} />
         <Link
           href="/guia"
           target="_blank"

@@ -37,6 +37,11 @@ export function buildTemplate(t: Template): { nodes: NodeData[]; edges: EdgeData
     ids.set(n.key, node.id);
     return node;
   });
-  const edges = t.edges.map(([a, b]) => ({ id: newId(), source: ids.get(a)!, target: ids.get(b)! }));
+  const edges: EdgeData[] = t.edges.map(([a, b, opts]) => ({
+    id: newId(),
+    source: ids.get(a)!,
+    target: ids.get(b)!,
+    ...(opts?.latencyMs ? { latencyMs: opts.latencyMs } : {}),
+  }));
   return { nodes, edges };
 }

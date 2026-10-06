@@ -2,9 +2,9 @@
 
 import { ReactFlowProvider } from "@xyflow/react";
 import { useState } from "react";
-import { useCollabMode } from "@/features/collab/context";
 import { useIsMobile } from "@/lib/use-media";
 import { Canvas } from "./Canvas";
+import { MobileAdd } from "./MobileSheets";
 import { Notices } from "./Notices";
 import { Palette } from "./Palette";
 import { PropertiesPanel } from "./PropertiesPanel";
@@ -20,31 +20,28 @@ export type Selection = { nodes: string[]; edges: string[] };
 export function RoomView({ room }: { room: RoomInfo | null }) {
   const [selection, setSelection] = useState<Selection>({ nodes: [], edges: [] });
   const mobile = useIsMobile();
-  // En una sala compartida el móvil solo mira; en la demo puede cargar el ejemplo y darle al ▶.
-  const mode = useCollabMode();
-  const lockSim = mobile && mode === "live";
+  const clear = () => setSelection({ nodes: [], edges: [] });
 
   return (
     <ReactFlowProvider>
       <SimProvider>
         <Supervisor />
         <div className="flex h-dvh flex-col overflow-hidden">
-          <RoomHeader room={room} readOnly={mobile} />
+          <RoomHeader room={room} compact={mobile} />
           <div className="relative flex min-h-0 flex-1">
             {!mobile && <Palette />}
             <main className="relative min-w-0 flex-1" aria-label="Lienzo">
-              <Canvas
-                selection={selection}
-                onSelectionChange={setSelection}
-                readOnly={mobile}
-                canLoadExample={!lockSim}
-              />
-              <SimBar readOnly={lockSim} />
+              <Canvas selection={selection} onSelectionChange={setSelection} readOnly={false} canLoadExample />
+              <SimBar readOnly={false} compact={mobile} />
               <Notices />
+              {mobile && (
+                <>
+                  <MobileAdd onAdded={(id) => setSelection({ nodes: [id], edges: [] })} />
+                  <PropertiesPanel selection={selection} onClear={clear} variant="sheet" />
+                </>
+              )}
             </main>
-            {!mobile && (
-              <PropertiesPanel selection={selection} onClear={() => setSelection({ nodes: [], edges: [] })} />
-            )}
+            {!mobile && <PropertiesPanel selection={selection} onClear={clear} />}
           </div>
         </div>
       </SimProvider>

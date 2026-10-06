@@ -48,6 +48,13 @@ export class LocalStore {
   }
 
   actions(): DiagramActions {
+    const replace = (nodeList: NodeData[], edgeList: EdgeData[], sim?: Partial<DiagramState["sim"]>) => {
+      const nodes: Record<string, NodeData> = {};
+      const edges: Record<string, EdgeData> = {};
+      for (const nd of nodeList) nodes[nd.id] = nd;
+      for (const e of edgeList) edges[e.id] = e;
+      this.set({ ...this.state, nodes, edges, sim: { ...this.state.sim, ...sim } });
+    };
     return {
       addNode: (kind: ComponentKind, x: number, y: number) => {
         const node = makeNode(
@@ -93,12 +100,9 @@ export class LocalStore {
       setSimOptions: (patch) => this.set({ ...this.state, sim: { ...this.state.sim, ...patch } }),
       loadTemplate: (t) => {
         const built = buildTemplate(t);
-        const nodes: Record<string, NodeData> = {};
-        const edges: Record<string, EdgeData> = {};
-        for (const nd of built.nodes) nodes[nd.id] = nd;
-        for (const e of built.edges) edges[e.id] = e;
-        this.set({ ...this.state, nodes, edges, sim: { ...this.state.sim, traffic: t.traffic } });
+        replace(built.nodes, built.edges, { traffic: t.traffic });
       },
+      replaceDiagram: (nodes, edges, sim) => replace(nodes, edges, sim),
       notify: () => {},
       announce: (text) => this.onNotice?.({ text, color: "var(--rojo)" }),
     };

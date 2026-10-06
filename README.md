@@ -26,11 +26,14 @@ Identidad visual de la CUJAE. Plan, modelo de datos y sistema de diseño en [`do
   reintentos y trabajo en segundo plano.
 - **Fallos**: tumbar, degradar (lento) y cortar conexiones a mano; modo **Caos** (caídas, lentitud y cortes al
   azar que se recuperan solos) y **caídas por sobrecarga** con reinicio automático. Compartidos por toda la sala.
-- **6 plantillas** listas para darle al ▶: lo esencial, alta disponibilidad, web a gran escala, trabajo en
-  segundo plano, microservicios y tormenta de reintentos.
+- **14 plantillas** listas para darle al ▶. Patrones: lo esencial, alta disponibilidad, web a gran escala,
+  trabajo en segundo plano, microservicios y tormenta de reintentos. Sistemas reales: tienda online, streaming
+  de vídeo, mensajería, pasarela de pagos, red social, sensores IoT, app de viajes y dos regiones.
+- **Proyectos**: exportar el diagrama como imagen PNG, guardarlo en un archivo `.distinode.json` e importarlo.
 - **Guía** en la app (`/guia`): componentes con sus equivalentes reales, métricas, fallos, plantillas, retos
   para clase y glosario. Documentación técnica del motor en [`docs/motor.md`](docs/motor.md).
-- En móvil, solo lectura. **Demo sin cuenta** (`/demo`), guardada en el navegador.
+- **También en el móvil**: botón + para añadir componentes y plantillas, propiedades en una hoja inferior y
+  «Conectar con…» para unir estaciones sin arrastrar. **Demo sin cuenta** (`/demo`), guardada en el navegador.
 
 ## Arquitectura en Docker
 
@@ -178,3 +181,4 @@ npm test            # pruebas del motor de simulación (Vitest)
 - `src/features/collab/` separa el lienzo del transporte: Liveblocks (salas) o local (demo).
 - `db/migrations/` y `scripts/migrate.mjs`: el esquema de Postgres, versionado.
 - Lecciones y misiones: un escenario = grafo inicial + objetivos evaluados sobre `engine.metrics()`.
+- Móvil: por debajo de 768 px la barra lateral y el panel se convierten en hojas inferiores (`useIsMobile`).
