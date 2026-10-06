@@ -1,12 +1,19 @@
 import type { ComponentKind, ParamKey } from "@/sim/components";
-import { clampTraffic, EMPTY_DIAGRAM, EXAMPLE, makeNode, newId } from "./ops";
-import type { DiagramActions, DiagramState, EdgeData, NodeData } from "./types";
+import { buildTemplate, clampTraffic, EMPTY_DIAGRAM, makeNode, newId } from "./ops";
+import type { DiagramActions, DiagramState, EdgeData, Notice, NodeData } from "./types";
 
 /** Almacén del modo demo: estado inmutable + persistencia en localStorage. */
 export class LocalStore {
   private state: DiagramState;
   private listeners = new Set<() => void>();
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** El modo demo muestra sus propios avisos del sistema (caos, sobrecarga). */
+  private onNotice: ((n: Notice) => void) | null = null;
+
+  setNoticeHandler(fn: ((n: Notice) => void) | null) {
+    this.onNotice = fn;
+  }
 
   constructor(private key: string) {
     this.state = load(key);
@@ -76,27 +83,24 @@ export class LocalStore {
         if (n) this.patchNode(id, { params: { ...n.params, [key]: value } });
       },
       setLabel: (id, label) => this.patchNode(id, { label: label.slice(0, 40) }),
-      setDown: (id, down) => this.patchNode(id, { down }),
+      setNodeState: (id, patch) => this.patchNode(id, patch),
+      setEdge: (id, patch) => {
+        const e = this.state.edges[id];
+        if (e) this.set({ ...this.state, edges: { ...this.state.edges, [id]: { ...e, ...patch } } });
+      },
       setRunning: (running) => this.set({ ...this.state, sim: { ...this.state.sim, running } }),
       setTraffic: (traffic) => this.set({ ...this.state, sim: { ...this.state.sim, traffic: clampTraffic(traffic) } }),
-      loadExample: () => {
-        if (Object.keys(this.state.nodes).length > 0) return false;
+      setSimOptions: (patch) => this.set({ ...this.state, sim: { ...this.state.sim, ...patch } }),
+      loadTemplate: (t) => {
+        const built = buildTemplate(t);
         const nodes: Record<string, NodeData> = {};
         const edges: Record<string, EdgeData> = {};
-        let prev: string | null = null;
-        for (const { kind, label, x, y } of EXAMPLE) {
-          const n = makeNode(kind, x, y, [], label);
-          nodes[n.id] = n;
-          if (prev) {
-            const id = newId();
-            edges[id] = { id, source: prev, target: n.id };
-          }
-          prev = n.id;
-        }
-        this.set({ ...this.state, nodes, edges });
-        return true;
+        for (const nd of built.nodes) nodes[nd.id] = nd;
+        for (const e of built.edges) edges[e.id] = e;
+        this.set({ ...this.state, nodes, edges, sim: { ...this.state.sim, traffic: t.traffic } });
       },
       notify: () => {},
+      announce: (text) => this.onNotice?.({ text, color: "var(--rojo)" }),
     };
   }
 }

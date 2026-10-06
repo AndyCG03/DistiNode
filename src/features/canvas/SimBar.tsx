@@ -2,15 +2,20 @@
 
 import { useActions, useDiagramState } from "@/features/collab/context";
 import { useEffect, useRef } from "react";
-import { useMetrics } from "./SimContext";
+import { SIM_DEFAULTS } from "@/lib/liveblocks.config";
+import { useHistory, useMetrics } from "./SimContext";
+import { OVERLOAD_SECONDS } from "./Supervisor";
 
 const fmt = new Intl.NumberFormat("es", { maximumFractionDigits: 0 });
 
 /** Barra flotante: ▶/⏸, tráfico y métricas en vivo. */
 export function SimBar({ readOnly }: { readOnly: boolean }) {
-  const { running, traffic } = useDiagramState().sim;
-  const { setRunning, setTraffic, notify } = useActions();
+  const sim = useDiagramState().sim;
+  const { running, traffic } = sim;
+  const opts = { ...SIM_DEFAULTS, ...sim };
+  const { setRunning, setTraffic, setSimOptions, notify } = useActions();
   const m = useMetrics();
+  const history = useHistory();
   const lastTraffic = useRef(traffic);
 
   const toggle = () => {
@@ -50,18 +55,42 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
         label="completadas"
         value={`${fmt.format(m.throughput)}/s`}
         title="Respuestas correctas que llegan a los clientes por segundo"
+        series={history.map((h) => h.throughput)}
+        color="var(--verde)"
+        unit="/s"
       />
       <Metric
-        label="latencia"
-        value={`${fmt.format(m.avgLatencyMs)} ms`}
-        title="Media de espera y proceso en los componentes; el viaje por las líneas no cuenta"
+        label="latencia p95"
+        value={`${fmt.format(m.p95LatencyMs)} ms`}
+        title={`El 95 % de las respuestas tarda menos que esto (media: ${fmt.format(m.avgLatencyMs)} ms). Cuenta espera, proceso y red; el viaje lento de los trenes no.`}
+        series={history.map((h) => h.p95)}
+        color="var(--tinta)"
+        unit=" ms"
       />
       <Metric
         label="errores"
         value={`${fmt.format(errorPct)} %`}
-        title="Porcentaje de peticiones que fallaron en los últimos 2 s"
+        title="Peticiones que terminaron en error (incluidos los tiempos de espera agotados), últimos 2 s"
         tone={errorPct >= 5 ? "text-rojo" : errorPct > 0 ? "text-ambar" : undefined}
+        series={history.map((h) => h.errors * 100)}
+        color="var(--rojo)"
+        unit=" %"
+        fixedMax={100}
       />
+      {m.retryRate >= 0.5 && (
+        <Metric
+          label="reintentos"
+          value={`${fmt.format(m.retryRate)}/s`}
+          title="Reintentos de los clientes por segundo"
+        />
+      )}
+      {(m.backlog > 0 || m.asyncThroughput > 0) && (
+        <Metric
+          label="en segundo plano"
+          value={`${fmt.format(m.asyncThroughput)}/s · ${fmt.format(m.backlog)} en cola`}
+          title="Mensajes procesados por los workers por segundo, y mensajes esperando en las colas"
+        />
+      )}
     </dl>
   );
 
@@ -128,16 +157,122 @@ export function SimBar({ readOnly }: { readOnly: boolean }) {
         </label>
 
         <div className="border-l border-linea pl-5">{metrics}</div>
+
+        <div className="flex items-center gap-1.5 border-l border-linea pl-4" role="group" aria-label="Fallos">
+          <Toggle
+            on={opts.chaos}
+            onChange={(v) => {
+              setSimOptions({ chaos: v });
+              notify(v ? "activó el modo caos" : "desactivó el modo caos");
+            }}
+            label="Caos"
+            title="Caídas, lentitud y cortes de red al azar; lo caído vuelve solo tras unos segundos"
+          />
+          <Toggle
+            on={opts.autoCrash}
+            onChange={(v) => {
+              setSimOptions({ autoCrash: v });
+              notify(v ? "activó las caídas por sobrecarga" : "desactivó las caídas por sobrecarga");
+            }}
+            label="Sobrecarga tumba"
+            title={`Un componente saturado más de ${OVERLOAD_SECONDS} s se cae y tarda ${opts.restartSec} s en reiniciar`}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function Metric({ label, value, title, tone }: { label: string; value: string; title: string; tone?: string }) {
+function Metric({
+  label,
+  value,
+  title,
+  tone,
+  series,
+  color,
+  unit = "",
+  fixedMax,
+}: {
+  label: string;
+  value: string;
+  title: string;
+  tone?: string;
+  series?: number[];
+  color?: string;
+  unit?: string;
+  fixedMax?: number;
+}) {
   return (
-    <div title={title} className="flex flex-col leading-tight">
-      <dt className="text-xs text-gris-texto">{label}</dt>
-      <dd className={`font-semibold ${tone ?? ""}`}>{value}</dd>
+    <div title={title} className="flex items-end gap-2 leading-tight">
+      <div className="flex flex-col">
+        <dt className="text-xs whitespace-nowrap text-gris-texto">{label}</dt>
+        <dd className={`font-semibold whitespace-nowrap ${tone ?? ""}`}>{value}</dd>
+      </div>
+      {series && color && <Sparkline values={series} color={color} unit={unit} label={label} fixedMax={fixedMax} />}
     </div>
+  );
+}
+
+/** Minigráfica del último minuto: una serie, línea de 2 px, sin ejes (el rótulo la nombra). */
+function Sparkline({
+  values,
+  color,
+  unit,
+  label,
+  fixedMax,
+}: {
+  values: number[];
+  color: string;
+  unit: string;
+  label: string;
+  fixedMax?: number;
+}) {
+  const w = 64;
+  const h = 22;
+  if (values.length < 2) return <span className="inline-block" style={{ width: w, height: h }} aria-hidden="true" />;
+  const max = Math.max(fixedMax ?? 0, ...values, 1e-9);
+  const step = w / (values.length - 1);
+  const pts = values.map((v, i) => `${(i * step).toFixed(1)},${(h - 2 - (v / max) * (h - 4)).toFixed(1)}`).join(" ");
+  const peak = Math.max(...values);
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      role="img"
+      aria-label={`${label}, último minuto: máximo ${fmt.format(peak)}${unit}, ahora ${fmt.format(values[values.length - 1])}${unit}`}
+      className="mb-0.5 hidden lg:block"
+    >
+      <line x1={0} y1={h - 1} x2={w} y2={h - 1} stroke="var(--linea)" strokeWidth={1} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Toggle({
+  on,
+  onChange,
+  label,
+  title,
+}: {
+  on: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      title={title}
+      className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold whitespace-nowrap ${
+        on ? "border-rojo bg-rojo text-white" : "border-linea text-gris-texto hover:border-tinta hover:text-tinta"
+      }`}
+    >
+      <span aria-hidden="true" className={`size-2 rounded-full ${on ? "bg-white" : "bg-gris"}`} />
+      {label}
+    </button>
   );
 }

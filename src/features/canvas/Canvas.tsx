@@ -77,6 +77,9 @@ export function Canvas({
         label: n.label,
         kind: n.kind,
         down: n.down,
+        downUntil: n.downUntil ?? null,
+        downReason: n.downReason ?? null,
+        slow: n.slow ?? false,
         params: n.params,
         selectedBy: selectorsByNode.get(n.id) ?? [],
       },
@@ -95,6 +98,7 @@ export function Canvas({
       source: e.source,
       target: e.target,
       selected: sel.has(e.id),
+      data: { down: e.down ?? false, latencyMs: e.latencyMs ?? 0 },
     }));
   }, [edges, selEdges]);
 
@@ -162,13 +166,6 @@ export function Canvas({
     notify(`añadió ${label}`);
   }
 
-  function loadExample() {
-    if (diagram.loadExample()) {
-      notify("cargó el ejemplo");
-      requestAnimationFrame(() => setTimeout(() => flow.fitView({ padding: 0.35, duration: 400 }), 60));
-    }
-  }
-
   return (
     <div
       className="absolute inset-0"
@@ -210,9 +207,7 @@ export function Canvas({
       </ReactFlow>
       <TrafficLayer />
       <Cursors />
-      {Object.keys(nodes).length === 0 && (
-        <EmptyState onLoadExample={loadExample} canLoad={canLoadExample} canEdit={!readOnly} />
-      )}
+      {Object.keys(nodes).length === 0 && <EmptyState canLoad={canLoadExample} canEdit={!readOnly} />}
     </div>
   );
 }

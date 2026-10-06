@@ -113,7 +113,19 @@ function drawTrains(
     ctx.rotate(pt.angle);
     ctx.beginPath();
     ctx.roundRect(-w / 2, -h / 2, w, h, h / 2);
-    if (t.kind === "request") {
+    if (t.kind === "async") {
+      // Mensaje de cola: rombo oscuro, para distinguirlo de las peticiones de los clientes.
+      ctx.beginPath();
+      ctx.moveTo(-h * 0.9, 0);
+      ctx.lineTo(0, -h * 0.9);
+      ctx.lineTo(h * 0.9, 0);
+      ctx.lineTo(0, h * 0.9);
+      ctx.closePath();
+      ctx.fillStyle = p.requestEdge;
+      ctx.strokeStyle = p.request;
+      ctx.fill();
+      ctx.stroke();
+    } else if (t.kind === "request") {
       ctx.fillStyle = p.request;
       ctx.strokeStyle = p.requestEdge;
       ctx.fill();

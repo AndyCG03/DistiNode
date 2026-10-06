@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { PERSON_COLORS } from "@/lib/colors";
 import { CollabProvider, createNoticeBus } from "./context";
 import { LocalStore } from "./localStore";
@@ -16,11 +16,16 @@ export function LocalBridge({ storageKey, children }: { storageKey: string; chil
   const diagram = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const [notices] = useState(createNoticeBus);
   const actions = useMemo(() => store.actions(), [store]);
+  useEffect(() => {
+    store.setNoticeHandler(notices.emit);
+    return () => store.setNoticeHandler(null);
+  }, [store, notices]);
 
   return (
     <CollabProvider
       value={{
         mode: "local",
+        isLeader: true,
         diagram,
         actions,
         me: ME,

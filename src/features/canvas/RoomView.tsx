@@ -11,6 +11,7 @@ import { PropertiesPanel } from "./PropertiesPanel";
 import { RoomHeader } from "./RoomHeader";
 import { SimBar } from "./SimBar";
 import { SimProvider } from "./SimContext";
+import { Supervisor } from "./Supervisor";
 
 export type RoomInfo = { id: string; code: string; name: string };
 export type Selection = { nodes: string[]; edges: string[] };
@@ -26,6 +27,7 @@ export function RoomView({ room }: { room: RoomInfo | null }) {
   return (
     <ReactFlowProvider>
       <SimProvider>
+        <Supervisor />
         <div className="flex h-dvh flex-col overflow-hidden">
           <RoomHeader room={room} readOnly={mobile} />
           <div className="relative flex min-h-0 flex-1">

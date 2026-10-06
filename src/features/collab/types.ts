@@ -1,4 +1,5 @@
-import type { Cursor, EdgeRecord, SimShared } from "@/lib/liveblocks.config";
+import type { Cursor, DownReason, EdgeRecord, SimShared } from "@/lib/liveblocks.config";
+import type { Template } from "@/sim/templates";
 import type { ComponentKind, ParamKey, Params } from "@/sim/components";
 
 /** Un nodo tal y como lo ve la interfaz (sin tipos de Liveblocks). */
@@ -10,8 +11,16 @@ export type NodeData = {
   y: number;
   params: Params;
   down: boolean;
+  downUntil?: number | null;
+  downReason?: DownReason | null;
+  slow?: boolean;
+  slowUntil?: number | null;
 };
 export type EdgeData = EdgeRecord;
+
+export type NodeStatePatch = Partial<Pick<NodeData, "down" | "downUntil" | "downReason" | "slow" | "slowUntil">>;
+export type EdgePatch = Partial<Pick<EdgeData, "latencyMs" | "down" | "downUntil">>;
+export type SimPatch = Partial<Pick<SimShared, "chaos" | "autoCrash" | "restartSec">>;
 
 export type DiagramState = {
   nodes: Readonly<Record<string, NodeData>>;
@@ -27,12 +36,17 @@ export interface DiagramActions {
   connect(source: string, target: string): boolean;
   setParam(id: string, key: ParamKey, value: number): void;
   setLabel(id: string, label: string): void;
-  setDown(id: string, down: boolean): void;
+  setNodeState(id: string, patch: NodeStatePatch): void;
+  setEdge(id: string, patch: EdgePatch): void;
   setRunning(running: boolean): void;
   setTraffic(traffic: number): void;
-  loadExample(): boolean;
+  setSimOptions(patch: SimPatch): void;
+  /** Sustituye el diagrama por una plantilla. */
+  loadTemplate(template: Template): void;
   /** Aviso breve para los demás: "Ana tumbó Servidor 2". */
   notify(action: string): void;
+  /** Aviso del sistema (caos, sobrecarga) para todos, también para quien lo genera. */
+  announce(text: string): void;
 }
 
 export type Person = { key: string; name: string; color: string; avatar?: string };

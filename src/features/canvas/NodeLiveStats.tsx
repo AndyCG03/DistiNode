@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentKind } from "@/sim/components";
+import { hasCapacity, type ComponentKind } from "@/sim/components";
 import { useNodeStats } from "./SimContext";
 
 const fmt = new Intl.NumberFormat("es", { maximumFractionDigits: 0 });
@@ -18,7 +18,9 @@ export function NodeLiveStats({ id, kind }: { id: string; kind: ComponentKind })
   const s = useNodeStats(id);
   if (!s || kind === "client") return null;
   const status = STATUS[s.status];
-  const capacity = (kind === "server" || kind === "database") && s.status !== "down";
+  const capacity = hasCapacity(kind) && s.status !== "down";
+  const isQueue = kind === "queue" && s.status !== "down";
+  const isGateway = kind === "gateway" && s.status !== "down";
 
   return (
     <section aria-label="En vivo" className="rounded-xl bg-fondo p-3">
@@ -28,7 +30,11 @@ export function NodeLiveStats({ id, kind }: { id: string; kind: ComponentKind })
         {capacity && <Row label="Carga" value={`${fmt.format(s.rho * 100)} %`} />}
         {capacity && <Row label="Cola" value={`${s.queue} / ${s.queueMax}`} />}
         {capacity && <Row label="Trabajando" value={`${s.busy} / ${s.workers}`} />}
+        {isQueue && <Row label="En espera" value={`${s.queue} / ${s.queueMax}`} />}
+        {isQueue && <Row label="Entregados" value={`${s.busy}`} />}
+        {isGateway && <Row label="Uso del límite" value={`${fmt.format(s.rho * 100)} %`} />}
         <Row label="Fallan" value={`${fmt.format(s.dropRate)} /s`} />
+        {capacity && s.overloadFor > 1 && <Row label="Saturado desde" value={`${fmt.format(s.overloadFor)} s`} />}
       </dl>
       {capacity && (
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-linea" aria-hidden="true">

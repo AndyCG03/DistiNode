@@ -272,11 +272,244 @@ describe("cambios del grafo", () => {
   });
 });
 
+describe("componentes nuevos", () => {
+  it("el API Gateway rechaza lo que pasa de su límite", () => {
+    const e = new Engine();
+    e.setGraph({
+      nodes: [node("c", "client"), node("g", "gateway", { rateLimit: 50 }), node("s", "server", { capacity: 200 })],
+      edges: [edge("c", "g"), edge("g", "s")],
+    });
+    e.setTraffic(100);
+    run(e, 6);
+    const m = e.metrics();
+    expect(m.errorRate).toBeGreaterThan(0.4);
+    expect(m.errorRate).toBeLessThan(0.6);
+    expect(m.throughput).toBeCloseTo(50, -1);
+    expect(e.nodeStats("g")!.status).toBe("hot");
+    expect(e.nodeStats("s")!.arrivalRate).toBeLessThan(55);
+  });
+
+  it("una CDN con 80 % de aciertos solo deja pasar ~20 %", () => {
+    const e = new Engine({ seed: 5 });
+    e.setGraph({
+      nodes: [node("c", "client"), node("cdn", "cdn", { hitRate: 80 }), node("s", "server")],
+      edges: [edge("c", "cdn"), edge("cdn", "s")],
+    });
+    e.setTraffic(100);
+    run(e, 8);
+    const ratio = e.nodeStats("s")!.arrivalRate / e.nodeStats("cdn")!.arrivalRate;
+    expect(ratio).toBeGreaterThan(0.12);
+    expect(ratio).toBeLessThan(0.28);
+  });
+
+  it("una cola responde al momento y los workers procesan a su ritmo", () => {
+    const e = new Engine();
+    e.setGraph({
+      nodes: [
+        node("c", "client"),
+        node("q", "queue", { queueMax: 1000 }),
+        node("w", "worker", { capacity: 10, processingMs: 100 }),
+      ],
+      edges: [edge("c", "q"), edge("q", "w")],
+    });
+    e.setTraffic(40);
+    run(e, 10);
+    const m = e.metrics();
+    expect(m.errorRate).toBe(0);
+    expect(m.throughput).toBeGreaterThan(35); // el cliente no espera al worker
+    expect(m.avgLatencyMs).toBeLessThan(20);
+    expect(m.asyncThroughput).toBeCloseTo(10, -1);
+    expect(m.backlog).toBeGreaterThan(200); // se acumula trabajo
+  });
+
+  it("si un worker cae, sus mensajes vuelven a la cola y se procesan al revivir", () => {
+    const g = (down: boolean): SimGraph => ({
+      nodes: [node("c", "client"), node("q", "queue"), node("w", "worker", {}, down)],
+      edges: [edge("c", "q"), edge("q", "w")],
+    });
+    const e = new Engine();
+    e.setGraph(g(false));
+    e.setTraffic(20);
+    run(e, 3);
+    e.setGraph(g(true));
+    run(e, 3);
+    expect(e.metrics().asyncThroughput).toBe(0);
+    const waiting = e.metrics().backlog;
+    expect(waiting).toBeGreaterThan(50);
+    expect(e.metrics().errorRate).toBe(0); // la cola sigue aceptando
+    e.setGraph(g(false));
+    run(e, 6);
+    expect(e.metrics().asyncThroughput).toBeGreaterThan(15);
+    expect(e.metrics().backlog).toBeLessThan(waiting);
+  });
+
+  it("en modo «a todos» el servidor espera al más lento y falla si falla uno", () => {
+    const g = (dbDown: boolean): SimGraph => ({
+      nodes: [
+        node("c", "client"),
+        node("s", "server", { fanout: 1, capacity: 100 }),
+        node("a", "database", { processingMs: 20 }),
+        node("b", "database", { processingMs: 200, capacity: 200 }, dbDown),
+      ],
+      edges: [edge("c", "s"), edge("s", "a"), edge("s", "b")],
+    });
+    const e = new Engine();
+    e.setGraph(g(false));
+    e.setTraffic(20);
+    run(e, 6);
+    const lat = e.metrics().avgLatencyMs;
+    expect(lat).toBeGreaterThan(280); // 80 (servidor) + 200 (la BD lenta)
+    expect(lat).toBeLessThan(330);
+    expect(e.metrics().errorRate).toBe(0);
+    e.setGraph(g(true));
+    run(e, 4);
+    expect(e.metrics().errorRate).toBe(1);
+  });
+
+  it("menos conexiones manda más tráfico al servidor rápido", () => {
+    const g = (algo: number): SimGraph => ({
+      nodes: [
+        node("c", "client"),
+        node("lb", "balancer", { lbAlgorithm: algo }),
+        node("fast", "server", { capacity: 100, processingMs: 20 }),
+        node("slow", "server", { capacity: 100, processingMs: 300 }),
+      ],
+      edges: [edge("c", "lb"), edge("lb", "fast"), edge("lb", "slow")],
+    });
+    const share = (algo: number) => {
+      const e = new Engine();
+      e.setGraph(g(algo));
+      e.setTraffic(80);
+      run(e, 8);
+      return e.nodeStats("fast")!.arrivalRate / (e.nodeStats("fast")!.arrivalRate + e.nodeStats("slow")!.arrivalRate);
+    };
+    expect(share(0)).toBeCloseTo(0.5, 1);
+    expect(share(1)).toBeGreaterThan(0.6);
+  });
+});
+
+describe("tiempos de espera, reintentos y degradación", () => {
+  const saturated = (client: Params): SimGraph => ({
+    nodes: [node("c", "client", client), node("s", "server", { capacity: 50, queueMax: 200 })],
+    edges: [edge("c", "s")],
+  });
+
+  it("con poco tiempo de espera, la cola de un servidor saturado se convierte en errores", () => {
+    const strict = new Engine();
+    strict.setGraph(saturated({ timeoutMs: 300 }));
+    strict.setTraffic(70);
+    run(strict, 10);
+    const patient = new Engine();
+    patient.setGraph(saturated({ timeoutMs: 0 }));
+    patient.setTraffic(70);
+    run(patient, 10);
+    expect(strict.metrics().errorRate).toBeGreaterThan(patient.metrics().errorRate + 0.1);
+    expect(strict.metrics().p95LatencyMs).toBeLessThanOrEqual(300);
+  });
+
+  it("los reintentos multiplican la carga sobre un servidor saturado (tormenta de reintentos)", () => {
+    const calm = new Engine();
+    calm.setGraph(saturated({ timeoutMs: 500, retries: 0 }));
+    calm.setTraffic(60);
+    run(calm, 10);
+    const storm = new Engine();
+    storm.setGraph(saturated({ timeoutMs: 500, retries: 3 }));
+    storm.setTraffic(60);
+    run(storm, 10);
+    expect(storm.metrics().retryRate).toBeGreaterThan(10);
+    expect(storm.nodeStats("s")!.arrivalRate).toBeGreaterThan(calm.nodeStats("s")!.arrivalRate * 1.3);
+  });
+
+  it("un reintento salva los fallos sueltos", () => {
+    const g = (retries: number, bDown: boolean): SimGraph => ({
+      nodes: [
+        node("c", "client", { retries }),
+        node("lb", "balancer", { healthCheckMs: 10000 }),
+        node("a", "server"),
+        node("b", "server", {}, bDown),
+      ],
+      edges: [edge("c", "lb"), edge("lb", "a"), edge("lb", "b")],
+    });
+    const withRetries = (retries: number) => {
+      const e = new Engine();
+      e.setGraph(g(retries, false));
+      e.setTraffic(20);
+      run(e, 1);
+      e.setGraph(g(retries, true)); // b cae justo después de un chequeo
+      run(e, 4);
+      return e;
+    };
+    const once = withRetries(0);
+    const twice = withRetries(3);
+    // El balanceador aún no sabe que b está caído: la mitad falla sin reintentos.
+    expect(once.metrics().errorRate).toBeGreaterThan(0.3);
+    expect(twice.metrics().errorRate).toBeLessThan(0.12);
+  });
+
+  it("un servidor degradado procesa cuatro veces más lento", () => {
+    const g = (slow: boolean): SimGraph => ({
+      nodes: [node("c", "client"), { ...node("s", "server", { capacity: 100 }), slow }],
+      edges: [edge("c", "s")],
+    });
+    const e = new Engine();
+    e.setGraph(g(true));
+    e.setTraffic(10);
+    run(e, 5);
+    expect(e.metrics().avgLatencyMs).toBeGreaterThan(300);
+    expect(e.nodeStats("s")!.status).toBe("warn");
+  });
+
+  it("una línea cortada falla y el balanceador la esquiva tras el chequeo", () => {
+    const g = (cut: boolean): SimGraph => {
+      const base = example(2);
+      base.edges = base.edges.map((ed) => (ed.id === "lb>s1" ? { ...ed, down: cut } : ed));
+      return base;
+    };
+    const e = new Engine();
+    e.setGraph(g(false));
+    e.setTraffic(40);
+    run(e, 3);
+    e.setGraph(g(true));
+    run(e, 0.5);
+    expect(e.metrics().errorRate).toBeGreaterThan(0);
+    run(e, 3);
+    expect(e.metrics().errorRate).toBe(0);
+    expect(e.nodeStats("s1")!.arrivalRate).toBe(0);
+  });
+
+  it("la latencia de red de una línea cuenta en ida y vuelta", () => {
+    const g = (latencyMs: number): SimGraph => ({
+      nodes: [node("c", "client"), node("s", "server")],
+      edges: [{ ...edge("c", "s"), latencyMs }],
+    });
+    const lat = (ms: number) => {
+      const e = new Engine();
+      e.setGraph(g(ms));
+      e.setTraffic(10);
+      run(e, 6);
+      return e.metrics().avgLatencyMs;
+    };
+    expect(lat(50) - lat(0)).toBeCloseTo(100, -1);
+  });
+
+  it("la sobrecarga sostenida se mide para que el supervisor pueda tumbar el nodo", () => {
+    const e = new Engine();
+    e.setGraph(example(1));
+    e.setTraffic(150);
+    run(e, 8);
+    expect(e.nodeStats("s1")!.overloadFor).toBeGreaterThan(3);
+    e.setTraffic(5);
+    run(e, 8);
+    expect(e.nodeStats("s1")!.overloadFor).toBe(0);
+  });
+});
+
 describe("registro de componentes", () => {
   it("numera las etiquetas con el primer hueco libre", () => {
     expect(nextLabel("server", [])).toBe("Servidor 1");
     expect(nextLabel("server", ["Servidor 1", "Servidor 3"])).toBe("Servidor 2");
     expect(nextLabel("client", [])).toBe("Cliente");
     expect(nextLabel("client", ["Cliente"])).toBe("Cliente 1");
+    expect(nextLabel("gateway", [])).toBe("API Gateway");
   });
 });
