@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Sistema de diseño — identidad CUJAE. Ver docs/plan.md §4 */
+:root {
+  --verde: #00704f;
+  --verde-fuerte: #005a3f;
+  --verde-suave: #e3f1eb;
+  --sobre-verde: #ffffff;
+  --gris: #a6a6a6;
+  --gris-texto: #5d6561;
+  --gris-tren: #7a7f7c;
+  --tinta: #14211c;
+  --papel: #ffffff;
+  --fondo: #f3f6f4;
+  --linea: #d9e1dd;
+  --punto: #c9d3ce;
+  --ambar: #b86e00;
+  --rojo: #c2362f;
+  --sombra: 0 6px 18px -8px rgb(0 70 50 / 0.25);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --verde: #2ba77b;
+  --verde-fuerte: #4cc496;
+  --verde-suave: #143128;
+  --sobre-verde: #04130d;
+  --gris: #a6a6a6;
+  --gris-texto: #a3ada8;
+  --gris-tren: #a6a6a6;
+  --tinta: #e8eeeb;
+  --papel: #16201c;
+  --fondo: #0d1512;
+  --linea: #2a3832;
+  --punto: #24312b;
+  --ambar: #f0a93a;
+  --rojo: #f06a60;
+  --sombra: 0 8px 24px -10px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-verde: var(--verde);
+  --color-verde-fuerte: var(--verde-fuerte);
+  --color-verde-suave: var(--verde-suave);
+  --color-sobre-verde: var(--sobre-verde);
+  --color-gris: var(--gris);
+  --color-gris-texto: var(--gris-texto);
+  --color-tinta: var(--tinta);
+  --color-papel: var(--papel);
+  --color-fondo: var(--fondo);
+  --color-linea: var(--linea);
+  --color-ambar: var(--ambar);
+  --color-rojo: var(--rojo);
+  --font-sans: var(--font-source-sans), "Myriad Pro", system-ui, sans-serif;
+  --shadow-flota: var(--sombra);
+}
+
+html,
+body {
+  background: var(--fondo);
+  color: var(--tinta);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "kern";
+  -webkit-font-smoothing: antialiased;
+}
+
+.cifras {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Foco visible y consistente */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--verde-suave);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.75rem;
+    padding: 0 1.25rem;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background-color 120ms, border-color 120ms, color 120ms;
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primario {
+    background: var(--verde);
+    color: var(--sobre-verde);
+  }
+  .btn-primario:hover:not(:disabled) {
+    background: var(--verde-fuerte);
+  }
+  .btn-borde {
+    border: 1.5px solid var(--linea);
+    background: var(--papel);
+    color: var(--tinta);
+  }
+  .btn-borde:hover:not(:disabled) {
+    border-color: var(--verde);
+  }
+  .campo {
+    height: 2.75rem;
+    width: 100%;
+    border-radius: 10px;
+    border: 1.5px solid var(--linea);
+    background: var(--papel);
+    padding: 0 0.875rem;
+    color: var(--tinta);
+  }
+  .campo::placeholder {
+    color: var(--gris-texto);
+  }
+  .campo:focus-visible {
+    border-color: var(--verde);
+    outline-offset: 1px;
+  }
+  .panel {
+    background: var(--papel);
+    border: 1px solid var(--linea);
+    border-radius: 12px;
+  }
+}
+
+/* Trenes de la portada */
+@keyframes viaje {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+.tren {
+  offset-rotate: auto;
+  animation: viaje 3.2s linear infinite;
+}
+.tren-vuelta {
+  animation-direction: reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tren {
+    animation: none;
+    offset-distance: 50%;
+  }
+}
